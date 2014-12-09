@@ -1,0 +1,11 @@
+<html>
+<body>
+<hr>
+<br>
+<% if (@jmd.track_status_change) %>
+	To view the current status of this alert click <%= raw link_to_absolute(link_to("Trackables", trackables_path)) %> and look for the status of <%=@jmd.job_code%>.
+	<br><br>
+<%end%>
+To view the job log entry for this run click <%= raw link_to_absolute(link_to("View Job Log Entry", @jle))%>.
+</body>
+</html>

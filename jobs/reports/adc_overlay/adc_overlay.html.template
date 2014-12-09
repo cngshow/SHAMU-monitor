@@ -1,0 +1,10 @@
+<div style="width: ##WIDTH##px;" >
+The following chart(s) report the ADC activation attempts and success rates for DoD automation for a given chart period. The line on the graph reports the calculated percentage of successful activations based on the number of attempts for that day.
+</div>
+<br>
+CHARTING_EXPANSION_BEGIN
+<div style="width: ##WIDTH##px; border: thin; border-style: solid;">
+      <img src="##CHART_LOCATION##">
+</div>
+<br><br>
+CHARTING_EXPANSION_END

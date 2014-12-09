@@ -1,0 +1,6 @@
+en:
+  errors:
+    messages:
+      not_savedasdf:
+        one: "1 error prohibited this %{resource} from being saved:"
+        other: "%{count} errors prohibited this %{resource} from being saved:"

@@ -1,0 +1,13 @@
+<!--this partial takes either an array of strings with the first element being the title (header) for the flash
+or an array of size 2 with the first element being a string for the title with the second element being an array
+of strings representing the validation errors
+-->
+<h2><%= messages.shift.to_s %></h2>
+<% messages.flatten! %>
+<br>
+There <%= (messages.size == 1 ? "was 1 error" : "were " + messages.size.to_s + " errors") + " requiring resolution:" %>
+<% messages.each do |error| %>
+    <ul>
+        <li><%= error.to_s %></li>
+    </ul>
+<% end %>

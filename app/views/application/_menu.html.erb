@@ -1,0 +1,38 @@
+<div>
+  <span>User</span>
+    <% if current_user %>
+          <%= link_to "Edit", edit_user_registration_path %>
+          <%= link_to "Logout", destroy_user_session_path %>
+    <% else %>
+        <%= link_to "Login", new_user_session_path %>
+        <%= link_to "Sign up", new_user_registration_path %>
+    <% end %>
+</div>
+
+<% if current_user && current_user.administrator %>
+    <div>
+      <span>Administration</span>
+          <%= link_to "List Users", admin_user_list_path(current_user) %>
+          <%= link_to "Set Job Credentials", setcredentials_path %>
+          <%
+             if !JobData.oracle_id.eql?('unknown')
+               if (!JobEngine.instance.stopping?)
+          %>
+                  <%= link_to JobEngine.instance.started? ? "Stop Job Engine" : "Start Job Engine", JobEngine.instance.started? ? stop_engine_path : start_engine_path %>
+              <% end %>
+          <% end %>
+          <%= link_to "Job Listing", job_metadatas_list_path %>
+          <%= link_to "Job Schedules", job_schedule_view_path %>
+    </div>
+<% end %>
+
+<div>
+  <span>Job Log / Services</span>
+  <%= link_to "View Job Log", job_log_list_path %>
+  <%= link_to "Trackables", trackables_path %>
+  <a href="<%= $application_properties['historical_charting_url'] %>">Historical Charting</a>
+  <% if current_user %>
+      <%= link_to "Real Time Charting", real_time_charting_pref_path %>
+      <%= link_to "Services Listing", services_list_path %>
+  <% end %>
+</div>

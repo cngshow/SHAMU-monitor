@@ -1,0 +1,18 @@
+Warbler::Config.new do |config|
+  config.features = %w(executable precompiled gemjar)
+
+  config.dirs = %w(app config lib vendor tmp gem_home jobs public log db)
+
+  config.includes = FileList["bundle_install.bat", "bundle_update.bat", "database_trim.bash", "database_trim.bat", "deployment_tasks.txt", "devise_install.txt", "execute_job.bash", "execute_job.bat", "Gemfile", "Gemfile.lock", "introscope_alerts.bash", "introscope_alerts.bat", "kill_shamu.bash", "last_known_jle_status.bash", "last_known_jle_status.bat", "prep_for_checkin.rb", "prepare_escalations.bash", "prepare_escalations.bat", "pst_dashboard.properties", "quartz.properties", "rename_job_code.bash", "Rakefile", "rename_job_code.bat", "repair_escalations.bash", "repair_escalations.bat", "shamu_env.bash", "shutdown.bat", "shamu_quartz_log.properties", "startup.bash", "startup.bat"]
+  config.excludes = FileList["tmp/cache", "tmp/pids", "tmp/sessions", "tmp/sockets"]
+
+  config.webinf_files = FileList[]
+
+  config.war_name = "PSTDashboard"
+  config.webxml.rails.env = 'development'
+  config.webxml.jruby.min.runtimes = 1
+  config.webxml.jruby.max.runtimes = 1
+
+  config.webinf_files += FileList["config/weblogic.xml"]
+  config.webxml.customkey = 'bob'
+end

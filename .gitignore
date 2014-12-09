@@ -1,0 +1,10 @@
+.bundle
+db/*.sqlite3
+log/*.log
+tmp/
+.sass-cache/
+gem_home/
+public/historical_charts/data/
+public/message_traffic_charts/
+
+

@@ -1,0 +1,5 @@
+<%= render :partial => '/job_mailer/escalation_email_preamble' if @jmd.track_status_change %> 
+
+<%= @body %>
+
+<%= render :partial => '/job_mailer/job_mailer_description' %> 

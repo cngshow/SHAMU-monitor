@@ -1,0 +1,4 @@
+#!/bin/bash
+source ~/.bashrc
+#echo ./script/runner -e $1 "JobMetadata.get_last_known_status_for_jc(\"$2\")"
+./script/runner -e $1 "JobMetadata.get_last_known_status_for_jc(\"$2\",\"$3\")"

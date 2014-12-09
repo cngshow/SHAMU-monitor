@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wls:weblogic-web-app xmlns:wls="http://xmlns.oracle.com/weblogic/weblogic-web-app" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd http://xmlns.oracle.com/weblogic/weblogic-web-app http://xmlns.oracle.com/weblogic/weblogic-web-app/1.2/weblogic-web-app.xsd">
+  <container-descriptor>
+    <!--
+       The following entry is necessary to prevent Weblogics old version of
+       the Joda time JAR (1.2.1) from taking precendence over the much more
+       recent version (1.6.0) included in JRuby. Without this setting,
+       Rails 3 will fail to start, due to the missing withYear method on
+       org.joda.time.DateTime.
+    -->
+    <prefer-web-inf-classes>true</prefer-web-inf-classes>
+  </container-descriptor>
+  <wls:context-root>PSTDashboard</wls:context-root>
+</wls:weblogic-web-app>

@@ -1,0 +1,82 @@
+#=begin
+every 1.day, :at=>'5:35 am' do
+   command "JOB_ENGINE_EXECUTE MESSAGE_BREAKDOWN_CHARTS"
+end
+
+every 1.day, :at=>'7:15 am' do
+   command "JOB_ENGINE_EXECUTE MESSAGE_FLOW_RPT_DAILY"
+end
+
+every 1.day, :at=>'8:00 am' do
+  command "JOB_ENGINE_EXECUTE DOD_ADC_REQUEST_CHECK"
+end
+
+every 1.month, :at=>'start of the month at 8:05 am' do
+  command  "JOB_ENGINE_EXECUTE MONTHLY_ADC"
+end
+
+#E-Mailed javan the creator of the whenever gem.  The month January is ignored but must be there to make the 'chronic' gem
+#(whenever's dependency) pick up the fact that the scheduling is month driven.  It will run for every month.
+every 1.month, :at=>'January 8th at 10:53 am' do
+  command "JOB_ENGINE_EXECUTE MESSAGE_FLOW_RPT_MONTHLY"
+end
+
+#Message traffic checks
+=begin
+every 10.minutes do
+#every 1.day, :at => ('00'..'23').to_a.collect {|x| ["#{x}:05" , "#{x}:15" , "#{x}:25" , "#{x}:35", "#{x}:45" , "#{x}:55"]}.flatten do
+  command "JOB_ENGINE_EXECUTE DOD_BATCH_EXCHANGE_ALERT"
+  command "JOB_ENGINE_EXECUTE NO_DOD_TRAFFIC"
+  command "JOB_ENGINE_EXECUTE NO_Z04_MESSAGES_RECEIVED"
+  command "JOB_ENGINE_EXECUTE Z03_Z04_FREQ_TRAFFIC_CHECK"
+  command "JOB_ENGINE_EXECUTE DOD_ADC_AUTOMATION_LOW_ALERT"
+  command "JOB_ENGINE_EXECUTE DOD_ADC_AUTOMATION_HIGH_ALERT"
+  command "JOB_ENGINE_EXECUTE DUPLICATION_ALERT"
+  command "JOB_ENGINE_EXECUTE MPI_ALERT"
+  command "JOB_ENGINE_EXECUTE TRAFFIC_FLOW_ALERT_DOD"
+  command "JOB_ENGINE_EXECUTE TRAFFIC_FLOW_ALERT_VA"
+  command "JOB_ENGINE_EXECUTE VISTA_ALERT"
+end
+=end
+
+#start the job every hour @ minute 05,15,25,35,45,55
+every 1.day, :at => ('00'..'23').to_a.collect {|x| ["#{x}:05" , "#{x}:15" , "#{x}:25" , "#{x}:35", "#{x}:45" , "#{x}:55"]}.flatten do
+  command "JOB_ENGINE_EXECUTE HDR_ALERT"
+end
+
+#checks status for introscope agent
+#=begin
+every 30.minutes do
+  command "JOB_ENGINE_EXECUTE EPAGENT_CHECK"
+end
+#=end
+every 1.hour do
+ # command "JOB_ENGINE_EXECUTE A24_ACK_DOD_ALERT"
+ # command "JOB_ENGINE_EXECUTE A24_ACK_MPI_ALERT"
+end
+
+#Run the weekly ADC report and message traffic flow on Monday mornings
+every :monday, :at=>'7:56 am' do
+   command "JOB_ENGINE_EXECUTE MESSAGE_FLOW_RPT_WEEKLY"
+end
+
+#Run the ADC Analyzer report on Tuesday mornings
+every :tuesday, :at=>'7:57 am' do
+   command "JOB_ENGINE_EXECUTE ADC_ANALYZER_CHARTS"
+   command "JOB_ENGINE_EXECUTE ADC_OVERLAY_CHARTS"
+end
+
+every 1.day, :at=>'6:00 am' do
+   command "JOB_ENGINE_EXECUTE HIST_CHARTING"
+end
+
+every 1.day, :at=>'6:13 am' do
+   command "JOB_ENGINE_EXECUTE VISTA_ELAPSED_TIME_NORTH_CHICAGO"
+   command "JOB_ENGINE_EXECUTE VISTA_ELAPSED_TIME_HUDSON_VALLEY"
+   command "JOB_ENGINE_EXECUTE VISTA_ELAPSED_TIME_HEARTLAND_WEST"
+end
+
+every :monday, :at=>'6:05 am' do
+   command "JOB_ENGINE_EXECUTE Z03_SITE_ANALYSIS"
+end
+#=end

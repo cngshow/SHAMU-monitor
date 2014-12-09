@@ -1,0 +1,11 @@
+<%
+   messages.keys.each do |header|
+   messages[header] = [messages[header]] unless messages[header].is_a?(Array)
+%>
+    <h2> <%= header.to_s %></h2>
+    <ul>
+      <% messages[header].each do |msg| %>
+          <li><%= msg.to_s %></li>
+      <% end %>
+    </ul>
+<% end %>

@@ -1,0 +1,61 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+		<title>ADC Analyzer</title>
+		<style type="text/css">
+			html, body {color:navy; }
+			div.rpt {width: 1100px; padding-left: 5px;}
+			
+			table.sample {
+				border-width: thick;
+				border-spacing: 0px;
+				border-style: ridge;
+				border-color: navy;
+				border-collapse: collapse;
+				background-color: white;
+			}
+			table.sample tr {
+				border-width: thin;
+				padding: 0px;
+				border-style: solid;
+				border-color: gray;
+				background-color: #e2e2e2;
+				-moz-border-radius: 0px 0px 0px 0px;
+			}
+			.milestone {
+				padding-left: 5px;
+				padding-right: 10px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="rpt">
+		The following charts display the current ADC running count for a given period of time with a line of best fit charted for an additional #PREDICTION_PERIOD_GSUB# days.
+		<br>
+		In addition, statistics are provided for reaching certain ADC milestones based on the reporting period.
+		<br/><br/>
+		The current ADC count as of #FINAL_DATE_GSUB# is <span style="color: green"><b>#CURRENT_ADC_COUNT_GSUB#</b></span>.
+	    <br/><br/> 
+		<table class="sample">
+				<!--DAYS_EXPANSION_BEGIN-->
+				<tr>
+				<td>
+					<img src="#SHAMU_GSUB#/adc_graph_#DAYS_GIF#.gif">
+				</td>
+				<td class="milestone">
+					With #DAYS_DESC# days of statistics the best fit line predicts the following milestones:
+					<ul>
+						<!--MILESTONE_EXPANSION_BEGIN-->
+						<li>
+							#MILESTONE# ADC patients on #MILESTONE_DATE#
+						</li>
+						<!--MILESTONE_EXPANSION_END-->
+					</ul>
+				</td>
+				</tr>
+				<!--DAYS_EXPANSION_END-->
+			</table>
+		</div>
+	</body>
+</html>

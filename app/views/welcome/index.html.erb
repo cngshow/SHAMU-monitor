@@ -1,0 +1,23 @@
+<img src="./assets/shamu.JPG" style="float: left;" />
+
+<% if current_user %>
+	<p>Hi, <% if current_user.administrator? %>	administrator <% end %>
+	<%=h current_user.username %>.</p>
+<%end%>
+<p>
+	The System Health Alert Monitoring Utility (SHAMU) automates the monitoring of overall system health through a variety of executable jobs.
+	<br><br>
+</p>
+<br><br><br><br>
+Download the <a href="documents/chdr_shamu_userguide.doc"><span style="color: green"><b>Shamu User Guide</b></span></a> for more on all of the features Shamu has to offer.
+<br><br>
+Download the <a href="documents/real_time_charts/CHDR_Real_Time_Charting.doc"><span style="color: green"><b>Real-time Charting Guide</b></span></a> for more information on this individual feature in Shamu.
+<br><br>
+
+<% unless current_user %>
+	<p>
+	<%if @user_count > 0 %>
+		Please <%= link_to "log in", new_user_session_path %> to use the system, or
+	<%end%>
+	<%= link_to "Sign up", new_user_registration_path %> for a new account.</p>
+<%end%>

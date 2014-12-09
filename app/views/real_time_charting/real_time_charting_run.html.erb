@@ -1,0 +1,23 @@
+<% if (is_ie_browser) %>
+    <OBJECT classid="clsid:8AD9C840-044E-11D1-B3E9-00805F499D93"
+        width="<%= @chart_width %>px"
+        height="<%= @chart_height %>px">
+        <param name="data_types" value="<%= @chart_types %>">
+        <param name="history" value="<%= @chart_history %>">
+        <%= raw render_params %>
+    </OBJECT>
+<% else %>
+    <embed
+        type="application/x-java-applet;version=1.6"
+        width="<%= @chart_width %>px"
+        height="<%= @chart_height %>px"
+        data_types="<%= @chart_types %>"
+        history="<%= @chart_history %>"
+        scriptable=false
+        pluginspage="http://java.sun.com/products/plugin/index.html#download"
+        <%= raw render_params %>
+    </embed>
+<% end %>
+
+<!-- render a close button for the applet window -->
+<table width="100%"><tr><td align="right"><%= tag "input", {:type => "button", :value => "Close", :onclick => "javascript:window.close();" }%></td></tr></table>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:context="http://www.springframework.org/schema/context"
+  xmlns:jee="http://www.springframework.org/schema/jee"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans 
+           http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+      	   http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-2.5.xsd 
+           http://www.springframework.org/schema/context
+           http://www.springframework.org/schema/context/spring-context-2.5.xsd">
+
+  <context:property-placeholder location="file:./jobs/tasks/message_replay/caip_resources/terminology.properties" />
+  <context:annotation-config />
+
+  <bean id="caipInitializer" class="gov.va.med.datasharing.caip.CaipInitializer">
+    <property name="caipConfigurationResource" value="${caip.configuration.file}" />
+    <property name="caipConfigParamMap">
+    	<map>
+    		<entry key="caip.configuration.placeholder.url"
+          		   value="${caip.configuration.url}" />
+    		<entry key="caip.configuration.placeholder.siteName"
+          		   value="SLCDEV" />
+    		<entry key="caip.configuration.placeholder.nds.connection.name"
+          		   value="${caip.configuration.nds.connection.name}" />
+    		<entry key="caip.configuration.placeholder.nds.connection.user"
+          		   value="${caip.configuration.nds.connection.user}" />
+    		<entry key="caip.configuration.placeholder.nds.connection.password"
+          		   value="${caip.configuration.nds.connection.password}" />
+    		<entry key="caip.configuration.placeholder.delegate.sts.application"
+          		   value="${caip.configuration.delegate.sts.application}" />
+    	</map>
+    </property>
+  </bean>
+  
+</beans>

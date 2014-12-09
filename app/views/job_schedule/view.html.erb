@@ -1,0 +1,5 @@
+<h3>All scheduled times are entered in local server time.</h3>
+<% unless @available %>
+    <span style="font-size: larger; color: red">Checked out by <%= @checked_out_by.login %></span>
+<% end %>
+<%= text_area_tag "schedule", @schedule, :class => "job_scheduler_readonly", :readonly => "readonly" %>

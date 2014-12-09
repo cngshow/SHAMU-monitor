@@ -1,0 +1,23 @@
+<%= form_tag admin_user_update_path, :name => "admin_user_update" do %>
+<table  class="hovertable">
+  <tr>
+	  <th style="width: 30%">User Name</th>
+	  <th style="width: 30%">E-Mail Address</th>
+	  <th style="width: 20%">Last Activity Time</th>
+	  <th style="width: 10%">Administrator</th>
+	  <th style="width: 10%">Delete User</th>
+  </tr>
+  <% @user_list.each do |user| %>
+    <tr onmouseover='this.className="hoverOver";'
+		onmouseout='this.className="hoverOut";'
+		>
+      <td> <%=h user.username %></td>
+      <td><%=h user.email %></td>
+	  <td><%=h display_time(user.last_activity_datetime) %></td>
+      <% is_me = current_user.eql?(user) %>
+	  <td style="text-align: center"><%= check_box_tag 'admin_check_box-' + user.id.to_s, true, user.administrator, {:disabled => is_me}%></td>
+	  <td style="text-align: center"><%= check_box_tag 'delete_check_box-' + user.id.to_s, true, false, :disabled => is_me%></td>
+    </tr>
+  <% end %>
+</table>
+<% end %>

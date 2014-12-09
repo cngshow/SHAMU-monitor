@@ -1,0 +1,31 @@
+<table class="hovertable">
+  <tr>
+    <th width="210px">Job code</th>
+    <th>Short Description</th>
+    <th width="140px">Job Legend</th>
+    <th width="200px">Last Run</th>
+  </tr>
+
+<% @job_metadatas.each do |job_metadata| 
+     job_metadata.is_suspended? #for the side effect of shutting off suspend flag if it is in the past...
+%>
+  <tr onmouseover='this.className="hoverOver";'
+  	  onmouseout='this.className="hoverOut";'
+	  onclick="document.location.href='<%=job_metadatas_edit_path(job_metadata)%>'"
+>
+    <td><%=h job_metadata.job_code %></td>
+	<td><%=h job_metadata.short_desc %></td>
+    <td>
+    	<%= image_tag (job_metadata.active ? 'active.png' : 'inactive.png'), :title => "Job is #{(job_metadata.active ? 'Active' : 'Inactive')}" %>
+		<%= image_tag 'email.gif', :title => 'Job Result is E-Mailed' if job_metadata.email_result %>
+		<%= image_tag 'footprints.gif', :title => 'Job Result is Trackable (Red/Green Light)' if job_metadata.track_status_change %>
+        <%= link_to image_tag('gears.gif', :title => 'Job Result is Available as a Service'), service_show_path(job_metadata) if job_metadata.enabled_as_service %>
+		<%= image_tag 'suspend.gif', :title => "Suspend Job: Stopping at #{display_time(job_metadata.stop)} and Resuming at #{display_time(job_metadata.resume)}" if job_metadata.suspend && job_metadata.active %>
+		<%= image_tag 'introscope.jpg', :title => "IntroScope is watching" if job_metadata.track_status_change && job_metadata.introscope_enabled %>
+	</td>
+	<td align="center">
+		<%= link_to display_time(job_metadata.get_last_log_entry.start_time), job_log_entry_path(job_metadata.get_last_log_entry.id) unless job_metadata.get_last_log_entry.nil?%><br>
+	</td>
+  </tr>
+<% end %>
+</table>

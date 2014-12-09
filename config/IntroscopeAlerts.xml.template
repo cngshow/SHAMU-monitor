@@ -1,0 +1,10 @@
+<metric type="StringEvent" name="SHAMU|JOB_CODE:Short_Description" value="SHORT_DESCRIPTION" />
+<metric type="StringEvent" name="SHAMU|JOB_CODE:Long_Description" value="LONG_DESCRIPTION" />
+<metric type="Timestamp" name="SHAMU|JOB_CODE:Last_Completed" value="LAST_COMPLETED_DATE" />
+<metric type="Timestamp" name="SHAMU|JOB_CODE:Status_Start_Time" value="START_TIME_DATE" />
+<metric type="IntCounter" name="SHAMU|JOB_CODE:Status" value="STATUS_RED_GREEN" />
+<metric type="IntCounter" name="SHAMU|JOB_CODE:Active" value="IS_ACTIVE" />
+<metric type="StringEvent" name="SHAMU|JOB_CODE:Alerts_Home" value="TRACKABLES_PAGE" />
+<metric type="StringEvent" name="SHAMU|JOB_CODE:Results" value="JOB_LOG_ENTRY_PAGE" />
+<metric type="StringEvent" name="SHAMU|JOB_CODE:id" value="EVENT_ID" />
+EVENT_PROPERTIES_EXPANSION<metric type="IntCounter" name="SHAMU|JOB_CODE:EVENT_KEY" value="EVENT_VALUE" />EVENT_PROPERTIES_EXPANSION

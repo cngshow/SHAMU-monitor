@@ -1,0 +1,65 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+		<title>Z03 Seven Day Site Analysis</title>
+		<style type="text/css">
+			html, body {color:navy; font-size: small;}
+			div.rpt {width: 1200px; padding-left: 5px;}
+			h2 {text-align: center;}
+			
+			table.sample {
+				border-width: thin;
+				border-color: navy;
+				background-color: #eee;
+			}
+
+			table.sample th {
+				text-align: bottom;
+				background-color: navy;
+				color: white;
+			}
+			
+			.odd {
+				background-color: #fff;
+			}
+			
+			.even {
+				background-color: "transparent";
+			}
+		</style>
+	</head>
+	<body>
+		<h2>Z03 Site Analysis<br>For #START_DATE# thru #END_DATE#</h2>
+		<div class="rpt">
+		The following report breaks down Z03 Clinical Updates that were sent from VA to DoD over the reporting period.
+	    <br/><br/> 
+		<table class="sample" cellpadding="6" width="100%">
+			<tr>
+				<th width="4%">&nbsp;</th>
+				<th width="45%">Site Name</th>
+				<th width="7%" align="right">#DAY_LABEL#</th>
+				<th width="7%" align="right">#DAY_LABEL#</th>
+				<th width="7%" align="right">#DAY_LABEL#</th>
+				<th width="7%" align="right">#DAY_LABEL#</th>
+				<th width="7%" align="right">#DAY_LABEL#</th>
+				<th width="7%" align="right">#DAY_LABEL#</th>
+				<th width="7%" align="right">#DAY_LABEL#</th>
+			</tr>
+			<!--SITE_EXPANSION_BEGIN-->
+			<tr class="#GREENBAR#">
+				<td align="left">#ROW_NUMBER#</td>
+				<td align="left">#SITE_NAME#</td>
+				<td align="right">#DAY_COUNT#</td>
+				<td align="right">#DAY_COUNT#</td>
+				<td align="right">#DAY_COUNT#</td>
+				<td align="right">#DAY_COUNT#</td>
+				<td align="right">#DAY_COUNT#</td>
+				<td align="right">#DAY_COUNT#</td>
+				<td align="right">#DAY_COUNT#</td>
+			</tr>
+			<!--SITE_EXPANSION_END-->
+		</table>
+		</div>
+	</body>
+</html>

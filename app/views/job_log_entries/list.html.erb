@@ -1,0 +1,213 @@
+<script language="JavaScript" type="text/javascript">
+	var all_options = new Array();
+	var tracked_options = new Array();
+	var nontracked_options = new Array();
+
+	function resetForm()
+	{
+		$('filter_by_job_code').value = 'ALL';
+		$('filter_by_start_date').value = '';
+		$('filter_by_finish_date').value = '';
+		$('filter_by_job_status').value = 'NO_FILTER';
+		setJobCodeFilterSelect("ALL");
+	}
+	
+	function setJobCodeFilterSelect(filter)
+	{
+		if (all_options.size == 0)
+			return false;
+		
+		clearSelect();
+
+		var list = filter == "ALL" ? all_options : (filter == "nontracked" ? nontracked_options : tracked_options);
+		var i
+		for (i=0;i<list.length; i++) {
+			$('filter_by_job_code').options[i] = list[i];
+		}
+	}
+
+	function clearSelect() {
+		var i
+		var len = $('filter_by_job_code').options.length
+		for (i = len; i >= 0; i--) {
+			$('filter_by_job_code').remove(i);
+		}
+	}
+	
+	function loadJobCodeSelects()
+	{
+		<%= job_meta_datas_to_option_list(@trackable_jmds,'tracked_options') %>
+		<%= job_meta_datas_to_option_list(@non_trackable_jmds,'nontracked_options') %>
+		<%= job_meta_datas_to_option_list(@job_code_filter,'all_options') %>
+	}
+
+	<% if Boolean(session[:jle_list_refresh]) %>
+		autoRefreshOn();
+	<% end %>
+	
+	function checkJobStatusFilter(job_status_filter)
+	{
+	  var jc = $('filter_by_job_code').value
+	  var filter = "ALL";
+
+	  if (job_status_filter == "STATUS_CHANGE_ONLY" || job_status_filter == "ESCALATION_CHANGE_ONLY"|| job_status_filter == "ALERTS_ONLY") {
+		filter = "tracked"
+	  }
+	  if (job_status_filter == "NON_ALERTS_ONLY") {
+		  filter = "nontracked"
+	  }
+
+    setJobCodeFilterSelect(filter)
+    
+    if (job_status_filter == "RUNNING_JOBS_ONLY")
+    {
+      $('filter_by_job_code').value = "ALL";
+    }
+    else
+    {
+      $('filter_by_job_code').value = jc;
+    }
+	}
+</script>
+		
+<script language="JavaScript" type="text/javascript">
+	<!--
+	Event.observe(window, 'load', loadJobCodeSelects, false);
+	//-->
+</script>
+<div id="filterByDiv" style="display: block">
+	<%= form_tag job_log_list_path do %>
+	   	<fieldset><legend>Job Log Filter Settings</legend>
+			<table>
+				<tr>
+				<td width="20%" valign="top">
+					<label for="filter_by_job_code">Filter By Job Code:</label><br/>
+					<%= select_tag(:filter_by_job_code, options_for_select(get_job_code_filter_options, session[:job_log_search][:filter_by_job_code])) %>
+				</td>
+				<td width="20%" valign="top">
+					<label for="filter_by_start_date">Start Date: (mm/dd/yyyy hh24:mm)</label><br/>
+					<%= text_field_tag :filter_by_start_date, session[:job_log_search][:filter_by_start_date], :size => 20, :maxlength => 20 %><br>
+					<%= display_time(@date_range[0]) unless @date_range[0].nil? %>
+				</td>
+				<td width="20%" valign="top">
+					<label for="filter_by_finish_date">End Date: (mm/dd/yyyy hh24:mm)</label><br/>
+					<%= text_field_tag :filter_by_finish_date, session[:job_log_search][:filter_by_finish_date], :size => 20, :maxlength => 20 %><br>
+					<%= display_time(@date_range[1]) unless @date_range[1].nil?%>
+				</td>
+				<td width="20%" valign="top">
+					<label for="filter_by_job_status">Job Status Filter:</label><br/>
+					<%= select_tag(:filter_by_job_status, options_for_select(@job_status_filter, session[:job_log_search][:filter_by_job_status].to_sym), {:onchange => "javascript:checkJobStatusFilter(this.value);"}) %>
+					<br>
+				</td>
+				<td width="20%" valign="top">
+					<label for="filter_limit">Limit Results to:</label><br/>
+					<%= select_tag(:filter_limit, options_for_select({"60 Rows"=>60, "120 Rows"=>120, "240 Rows"=>240}, session[:job_log_search][:filter_limit].to_i)) %>
+					<br>
+				</td>
+				</tr>
+				<tr>
+					<td width="100%" colspan="5">
+						<%= submit_tag 'Search' %>&nbsp;<input type="button" value="Reset Filter" onclick="resetForm();"/>
+					</td>
+				</tr>
+			</table>
+		</fieldset>
+	<% end %>
+</div>
+
+<%= will_paginate @job_log_entries_page %><br>
+
+<table class="hovertable">
+<tr>
+<% if @outage_hunting || @escalation_hunting %>
+    <th>Job Code</th>
+    <th>Finish Time</th>
+    <th>Time Between Status Change</th>
+	  <th>Legend</th>
+<% else %>
+    <th>Job Code</th>
+    <th>Run By</th>
+    <th>Start Time</th>
+    <th>Finish Time</th>
+    <th>Elapsed Time</th>
+	  <th>Job Status</th>
+	  <th width="40px">Legend</th>
+<% end %>	
+</tr>
+
+<% @job_log_entries_page.each do |job_log_entry|
+		run_status = job_log_entry.run_status
+		is_pending = run_status.eql?("Pending")
+	
+		style = "background-color: " +
+			case run_status
+				when "Running"
+					"#C0FFC0"
+				when "Failure"
+					"#FFC0C0"
+				when "Pending"
+					"#99CCFF"
+				else
+					"transparent"
+			end
+	%>
+	  <tr style="<%= style.to_s %>" 
+	  		onmouseover='this.className="hoverOver";'
+			onmouseout='this.className="hoverOut";'
+			onclick="document.location.href='<%=job_log_entry_path(job_log_entry)%>'"
+		>
+			
+	    <td><%=h job_log_entry.job_code %></td>
+
+<% if @outage_hunting || @escalation_hunting %>
+   	<td><%=h display_time(job_log_entry.finish_time) %></td>
+   	<td><%=h convert_seconds_to_time(@alert_times[job_log_entry.job_code][job_log_entry]) unless (@alert_times[job_log_entry.job_code].nil? || @alert_times[job_log_entry.job_code][job_log_entry].nil?) %></td>
+<% else %>
+	<td><%=h job_log_entry.run_by %></td>
+    <td><%=h is_pending ? "" : display_time(job_log_entry.start_time) %></td>
+	<% if is_pending %>
+		<td>&nbsp;</td>
+		<td>&nbsp;</td>
+	<% else %>
+		<% if job_log_entry.finish_time.nil? %>
+		    <td>Not Finished</td>
+	    	<td><%=h convert_seconds_to_time(Time.now - job_log_entry.start_time) %></td>
+		<%else%>
+	    	<td><%=h display_time(job_log_entry.finish_time) %></td>
+	    	<td><%=h convert_seconds_to_time(job_log_entry.finish_time - job_log_entry.start_time) %></td>
+		<%end%>
+	<%end%>
+	<td><%=h run_status %></td>
+<% end %>
+	<td align="center">
+		<!--#banana slug fix the balls-->
+		<!--#http://www.enterprise-dashboard.com/tag/red-green-yellow-alert/-->
+		<% unless job_log_entry.status.nil?
+			esc_style = "float:left"
+			
+			unless job_log_entry.status.downcase.eql?("unknown")
+				escalation = job_log_entry.get_escalation()
+				esc_color = escalation.nil? ? "green" : JobMetadata.escalation_color_data(escalation.color_name)[0]
+				esc_style = "background-color:" + esc_color + "; width:14px; height:14px; border-width:2px; border-style:ridge; border-color:" + esc_color + ";float:left;"
+			end
+		%>
+			<span style="<%= esc_style %>">
+				<% if job_log_entry.status.downcase.eql?("unknown") %>
+					<%= image_tag 'UNKNOWN.gif', :title => "Job Result is unknown" %>
+				<% else %>
+					&nbsp;&nbsp;&nbsp;
+				<% end %>
+			</span>
+		<% end %>
+		<span style="float:right">
+			<%= image_tag 'email.gif', :title => "Job Result was E-Mailed to: " + formatEmailedOnList(job_log_entry.email_to, job_log_entry.email_cc) if job_log_entry.email_sent %>
+		</span>
+	</td>
+</tr>
+
+<% end %>
+
+</table>
+
+<%= will_paginate @job_log_entries_page %>
+<%= set_field_focus 'filter_by_job_code'%>

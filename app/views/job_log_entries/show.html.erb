@@ -1,0 +1,117 @@
+<table width="99%">
+	<tr>
+		<td width="50%" valign="top">
+			<b>Job Code:</b>
+			<%=h @job_log_entry.job_code %>
+		</td>
+		<% esc_color = nil
+			if (@jmd.track_status_change && @job_log_entry.status.eql?('RED'))
+				esc_color = JobMetadata.escalation_color_data(@job_log_entry.get_escalation.color_name)[0]
+			end
+			tdStyle = "border-bottom: 4px solid #{esc_color}" unless esc_color.nil?
+		%>
+		<td width="50%" <%= raw "style=\"#{tdStyle}\"" unless esc_color.nil? %>>
+			<b>Run Status:</b>
+			<%=h @job_log_entry.run_status %>
+			<% if (@jmd.track_status_change && !@job_log_entry.status.nil?)
+				span_class = (@job_log_entry.status.downcase.eql?('unknown') ? 'blue' : @job_log_entry.status.downcase) %>
+				<br><b>Trackable Status:&nbsp;</b><span style="color: <%= span_class %>"><%=h @job_log_entry.status %></span>
+			<% end %>
+			<% if (@jmd.track_status_change && @job_log_entry.status.eql?('RED'))%>
+				<br><b>Escalation Level:&nbsp;</b><%= @job_log_entry.get_escalation.color_name%>
+			<% end %>
+		</td>
+	</tr>
+	<tr>
+		<td width="50%">
+			<b>Start Time:</b>
+			<%=h display_time(@job_log_entry.start_time) %>
+		</td>
+		<td width="50%">
+			<b>Finish Time:</b>
+			<%=h display_time(@job_log_entry.finish_time) %>
+		</td>
+	</tr>
+	<tr>
+		<td width="50%">
+			<b>Run By:</b>
+			<%=h @job_log_entry.run_by %>
+		</td>
+		<td width="50%">
+			<b>E-Mail Sent:</b>
+			<%= @job_log_entry.email_sent ? "True" : "No E-mail Sent"  %>
+			<% unless (current_user.nil? || @job_log_entry.get_email_hash.nil?) %>
+			     &nbsp;&nbsp;&nbsp;&nbsp;<%= link_to "E-mail Me this Job Result", job_log_entry_email_path(@job_log_entry) %>
+			<%end%>
+		</td>
+	</tr>
+	<% if @job_log_entry.email_sent %>
+		<tr>
+			<td width="50%" valign="top">
+				<b>E-Mail To:</b>
+				<%= raw commas_to_br(@job_log_entry.email_to) %>
+			</td>
+			<td width="50%" valign="top">
+				<b>E-Mail CC:</b>
+				<%= raw commas_to_br(@job_log_entry.email_cc) %>
+			</td>
+		</tr>
+	<% end %>
+  <% 
+     previous_status_change_jle = JobLogEntry.get_jle_in_sequence(@job_log_entry, :before, true) if @jmd.track_status_change
+     previous_jle = JobLogEntry.get_jle_in_sequence(@job_log_entry, :before, false)
+     next_status_change_jle = JobLogEntry.get_jle_in_sequence(@job_log_entry, :after, true) if @jmd.track_status_change
+     next_jle = JobLogEntry.get_jle_in_sequence(@job_log_entry, :after, false)
+     first_run = previous_jle.nil? && next_jle.nil?
+  %>
+    <tr>
+      <td colspan="2" width="100%">
+      	<b>Navigation:</b><%= raw "<span style=\"color: purple;\"><b><i>&nbsp;&nbsp;First Run - No Navigation</i></b></span>" if first_run %>
+        <%= link_to "Previous Job Result", job_log_entry_path(previous_jle) if (! previous_jle.nil?) %>
+        <%= raw "&nbsp;&nbsp;|&nbsp;&nbsp;" if ! previous_jle.nil? && (! previous_status_change_jle.nil? || ! next_jle.nil? || ! next_status_change_jle.nil?) %>
+        <%= link_to "Previous Status Change Alert", job_log_entry_path(previous_status_change_jle) unless (previous_status_change_jle.nil?) %>
+        <%= raw "&nbsp;&nbsp;|&nbsp;&nbsp;" if ! previous_status_change_jle.nil? && (! next_jle.nil? || ! next_status_change_jle.nil?)%>
+        <%= link_to "Next Job Result", job_log_entry_path(next_jle) unless (next_jle.nil?) %>
+        <%= raw "&nbsp;&nbsp;|&nbsp;&nbsp;" if ! next_jle.nil? && ! next_status_change_jle.nil? %>
+        <%= link_to "Next Status Change Alert", job_log_entry_path(next_status_change_jle) unless (next_status_change_jle.nil?) %>
+      </td>
+    </tr>
+	<tr>
+		<td width="100%" colspan="2" style="border: solid navy 1px;background-color: #ffffee;">
+		  <b>Job Results:</b><br><br>
+          <% html_regex = Regexp.new('<[hH][tT][mM][lL].*</[hH][tT][mM][lL]', Regexp::MULTILINE) %>
+          <%= raw "<pre>" unless html_regex.match(@job_log_entry.job_result.to_s) %>
+<!--Do not add any spacing before the line below (there is a pre tag here :-) ) !!-->
+<%= raw @job_log_entry.job_result %>
+          <%= raw "</pre>" unless html_regex.match(@job_log_entry.job_result.to_s) %>
+          <br>
+          <br>
+		</td>
+	</tr>
+	<% if @job_log_entry.status.eql?('RED') && ! @job_log_entry.get_escalation.nil? && ! @job_log_entry.get_escalation.email_preamble.nil? && ! @job_log_entry.get_escalation.email_preamble.strip.empty? %>
+		<tr>
+			<td width="100%" colspan="2">
+			<b>Job Escalation Description:</b>
+			<%= @job_log_entry.get_escalation.email_preamble %>
+			</td>
+		</tr>
+	<% end %>
+	<tr>
+		<td width="100%" colspan="2">
+		<b>Job Description:</b>
+		<%= @jmd.desc %>
+		</td>
+	</tr>
+	<% if current_user && current_user.administrator && @jmd.track_status_change %>
+		<tr>
+			<td width="50%" valign="top">
+			<b>Run Data:</b>
+			<%= @job_log_entry.run_data %>
+			</td>
+			<td width="50%" valign="top">
+			<b>Introscope Data:</b>
+			<%= @job_log_entry.introscope_data %>
+			</td>
+		</tr>
+	<% end %>
+</table>

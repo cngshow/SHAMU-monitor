@@ -1,0 +1,1 @@
+jruby -S %GEM_HOME%\bin\warble

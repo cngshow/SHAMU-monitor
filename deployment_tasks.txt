@@ -1,0 +1,38 @@
+for deployment do the following:
+
+    1) on unix run "export $RUBYLIB=''" at a shell
+    2) set gem_home to the gem_home directory under rails root
+
+
+
+
+
+
+if you have issues running against oracle do the following:
+
+in oracle's adapter.rb make the following change:
+              value = value.to_yaml if unserializable_attribute?(c.name, c)
+              to:
+              value = value.to_yaml if value.is_a?(Hash)
+
+in C:\languages\jruby-1.6.7.2\gem_home\gems\activerecord-jdbc-adapter-1.2.2\lib\arjdbc\oracle or thereabouts we need
+to modify the connection_methods.rb file adding the following require to the top of the file:
+
+    require './lib/jars/ojdbc6.jar'
+
+
+
+old deployment we did the following:
+
+    java -jar ./lib/jars/jruby-complete-1.6.7.2.jar -S gem install -i ./gem_home bundler --no-rdoc --no-ri --version "1.1.4"
+
+    1) copied PSTDashboard to a temp directory
+    2) open a command window to temp rails root
+    3) run 'java -jar .\lib\jars\jruby-complete-1.6.7.2.jar %GEM_HOME%/bin/bundle package'
+    4) run 'java -jar .\lib\jars\jruby-complete-1.6.7.2.jar %GEM_HOME%/bin/bundle install --deployment'
+    5) cd to 'C:\temp\PSTDashboard\vendor\bundle\jruby\1.8\gems\activerecord-jdbc-adapter-1.2.2\lib\arjdbc\oracle'
+    6) update adapter.rb as noted above around line 14
+    7) update connection_methods.rb adding "require './lib/jars/ojdbc6.jar'" to the file as noted above
+
+Must update %GEM_HOME%\gem_home\gems\jruby-jars-1.6.7.2\lib\jruby-core-1.6.7.2.jar with the version checked into perforce.  This assumes we are
+Still on version 1.6.7.2

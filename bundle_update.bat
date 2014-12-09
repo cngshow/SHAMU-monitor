@@ -1,0 +1,1 @@
+java -jar .\lib\jars\jruby-complete-1.6.7.2.jar %GEM_HOME%/bin/bundle update

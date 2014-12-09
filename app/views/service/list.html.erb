@@ -1,0 +1,14 @@
+<table class="hovertable">
+    <tr>
+        <th>Job code</th>
+        <th>Short Description</th>
+    </tr>
+    <% @services.each do |service| %>
+	    <tr onmouseover='this.className="hoverOver";'
+			onmouseout='this.className="hoverOut";'
+			onclick="document.location.href='<%= service_show_path(service)%>';">
+	        <td><%=h service.job_code %></td>
+	        <td><%=h service.short_desc %></td>
+	    </tr>
+    <% end %>
+</table>

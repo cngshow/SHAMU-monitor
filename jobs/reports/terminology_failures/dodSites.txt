@@ -1,0 +1,100 @@
+0001	Fox AHC
+0003	Lyster ACH (US Army Aeromedical Center)
+0004	42nd Medical Group
+0005	Bassett ACH
+0006	3rd Medical Group
+0008	Bliss AHC
+0009	56th Medical Group
+0010	355th Medical Group
+0013	314th Medical Group
+0014	David Grant Medical Center (60th Medical Group)
+0018	30th Medical Group
+0019	95th Medical Group
+0024	Camp Pendleton Naval Hospital
+0028	Naval Hospital Lemoore
+0029	Naval Medical Center San Diego-Balboa
+0032	Evans ACH
+0035	Naval Ambulatory Care Center, Groton
+0036	436th Airlift Wing
+0038	Naval Hospital Pensacola
+0039	Naval Hospital Jacksonville
+0042	96th Medical Group
+0043	325th Medical Group
+0045	6th Medical Group
+0046	45th Medical Group
+0047	D. D. Eisenhower AMC
+0048	Martin ACH
+0049	Winn ACH
+0050	347th Medical Group
+0051	78th Medical Group
+0052	Tripler AMC, Fort Shafter
+0053	366th Medical Group
+0055	Scott AFB Medical Center (375th Medical Group)
+0056	Naval Hospital Great Lakes
+0057	Irwin ACH
+0058	Munson AHC
+0059	22nd Medical Group
+0060	Blanchfield ACH
+0061	Ireland ACH
+0062	2nd Medical Group
+0064	Bayne-Jones ACH
+0067	Naval Medical Center Bethesda
+0073	Keesler Medical Center (81st Medical Group)
+0074	14th Medical Group
+0075	General Leonard Wood ACH
+0076	509th Medical Facility
+0077	341st Medical Group
+0078	Ehrling Bergquist Hospital (55th Medical Group)
+0079	Mike O’Callahan Federal Hospital (99th Medical Group)
+0083	377th Medical Group
+0084	49th Medical Group
+0085	27th Medical Group
+0086	Keller ACH
+0089	Womack AMC
+0090	4th Medical Group
+0091	Naval Hospital Camp Lejeune
+0093	319th Medical Group
+0094	5th Medical Group
+0095	Wright-Patterson AFB Medical Center (74th Medical Group)
+0096	72nd Medical Group
+0097	97th Medical Group
+0098	Reynolds ACH
+0101	20th Medical Group
+0103	Charleston Naval Hospital
+0106	28th Medical Group
+0108	William Beaumont AMC
+0110	Darnall ACH
+0112	7th Medical Group
+0113	82nd Medical Group
+0114	47th Medical Group
+0117	Wilford Hall Medical Center (59th Medical Wing)
+0118	Naval Hospital Corpus Christi
+0119	75th Medical Group
+0124	Naval Medical Center Portsmouth
+0125	Madigan AMC, Fort Lewis, WA
+0128	92nd Medical Group
+0129	90th Medical Group
+0131	Weed ACH
+0248	61st Medical Group
+0310	66th Medical Group
+0326	305th Medical Group
+0330	Guthrie AHC
+0338	71st Medical Group
+0364	17th Medical Group
+0607	Landstuhl Regional Medical Center
+0612	121st General Hospital
+0615	Naval Hospital Guantanamo Bay
+0617	Naval Hospital Naples
+0618	Naval Hospital Rota
+0620	Naval Hospital Agana, Guam
+0621	Naval Hospital Okinawa
+0622	Yokosuka Naval Hospital
+0623	Naval Hospital Keflavik
+0624	Naval Hospital Sigonella
+0629	65th Medical Group
+0633	48th Medical Group
+0635	39th Medical Group
+0637	8th Medical Group
+0638	51st Medical Group
+0639	35th Medical Group
+0808	31st Medical Group

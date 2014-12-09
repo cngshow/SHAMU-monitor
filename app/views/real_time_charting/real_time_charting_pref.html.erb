@@ -1,0 +1,70 @@
+<style type="text/css">
+	li.notes {
+		font-size: xx-small;
+		color: navy;
+	}
+</style>
+<script type="text/javascript">
+	function popChart(){
+		var va_types = $('va_chart_types').value
+		var dod_types = $('dod_chart_types').value
+		if (va_types =='' && dod_types == '') { 
+			alert('Please select at least one chart type from the VA and/or DoD selection lists prior to viewing the real time chart.');
+			return false;
+		}
+		var chart_size = $('chart_size').value;
+		var maxHeight = screen.availHeight - (chart_size == 'Small' ? 400 : (chart_size == 'Medium' ? 275 : 150));
+        var maxWidth = screen.availWidth - (chart_size == 'Small' ? 750 : (chart_size == 'Medium' ? 550 : 300));
+        var features = "menubar=0,location=no,directories=no,copyhistory=no,resizable=1,scrollbars=1,status=0,toolbar=0,width="+maxWidth+",height="+maxHeight+",top=50,left=50";
+
+		var now = new Date();
+		var rtc_popup = 'rtc_popup' + now.getHours() + now.getMinutes() + now.getSeconds();
+		var popwin = window.open("default", rtc_popup, features)
+		var origTarget = document.forms[0].target;
+		document.forms[0].target = rtc_popup;
+		document.forms[0].submit();
+		document.forms[0].target = origTarget;
+	}
+</script>
+<fieldset><legend>Charting Preferences Filter</legend>
+	<%= form_tag real_time_charting_run_path do %>
+		<table width="750px">
+			<tr>
+				<td width="20%" valign="top" align="right"><b>VA Chart Type(s):</b></td>
+				<td width="20%"><%= select_tag 'va_chart_types', options_for_select(['VA_TOTALS_Success','VA_Z01_Success','VA_Z02_Success','VA_Z03_Success','VA_Z04_Success','VA_Z05_Success','VA_Z06_Success','VA_Z07_Success','VA_A24_Success','MPI_ACK_Success','VA_HDR_TOTALS_Success', 'VA_TOTALS_Failure','VA_Z01_Failure','VA_Z02_Failure','VA_Z03_Failure','VA_Z04_Failure','VA_Z05_Failure','VA_Z06_Failure','VA_Z07_Failure','VA_A24_Failure','MPI_ACK_Failure','VA_HDR_TOTALS_Failure'], @va_chart_types), {:multiple => true, :size => 12}%></td>
+				<td width="20%" valign="top" align="right">&nbsp;</td>
+				<td width="20%" valign="top" align="right"><b>DOD Chart Type(s):</b></td>
+				<td width="20%"><%= select_tag 'dod_chart_types', options_for_select(['DOD_TOTALS_Success','DOD_Z01_Success','DOD_Z02_Success','DOD_Z03_Success','DOD_Z04_Success','DOD_Z05_Success','DOD_Z06_Success','DOD_Z07_Success','DOD_TOTALS_Failure','DOD_Z01_Failure','DOD_Z02_Failure','DOD_Z03_Failure','DOD_Z04_Failure','DOD_Z05_Failure','DOD_Z06_Failure','DOD_Z07_Failure'], @dod_chart_types), {:multiple => true, :size => 12}%></td>
+			</tr>
+			<tr>
+				<td width="20%" align="right"><b>Chart Size:</b></td>
+				<td width="20%"><%= select_tag 'chart_size', options_for_select(['Small','Medium','Large'], @chart_size)%></td>
+				<td width="20%" valign="top" align="right">&nbsp;</td>
+				<td width="20%" align="right"><b>History:</b></td>
+				<td width="20%"><%= select_tag 'chart_history', options_for_select([['5 minutes','300'],['10 minutes','600'],['15 minutes','900'],['20 minutes','1200'],['25 minutes','1500'],['30 minutes','1800'],['35 minutes','2100'],['40 minutes','2400'],['45 minutes','2700'],['50 minutes','3000'],['55 minutes','3300'],['60 minutes','3600']], @chart_history)%></td>
+			</tr>
+			<tr>
+				<td width="40%" colspan="2">&nbsp;</td>
+				<td width="20%" align="center">
+					<%= tag "input", {:type => "button", :value => 'View Real Time Chart', :onclick => 'javascript:popChart()', :disabled => (JobEngine.instance.started? && ! Boolean(SystemProp.get_value('suspend_rtc')) ? false : true) } %>
+				</td>
+				<td width="40%" colspan="2">&nbsp;</td>
+			</tr>
+		</table>
+	<%end%>
+	<ul>
+		<li class="notes">Use CTRL + click to select multiple chart types one at a time.</li>
+		<li class="notes">Use SHIFT + click to select multiple chart types in a row.</li>
+		<li class="notes">Ensure that popup blockers are turned off.</li>
+		<li class="notes">The real time charting view requires Java JRE 1.6 be installed. <a href="http://www.java.com/en/download/manual.jsp">Click here to verify/download Java Applet Runtime</a></li>
+		<li class="notes">When launching real time charting you will be need to grant permission to run the applet.</li>
+		<li class="notes">Right Click on the chart change the visiblity or color of a line</li>
+		<li class="notes"><a href="./documents/real_time_charts/CHDR_Real_Time_Charting.doc">Click Here</a> to view a document describing usages for real-time charting</li>
+	<ul>
+</fieldset>
+<% if (admin_check?) %>
+	<% form_tag real_time_charting_system_prop_path do %>
+		<%=submit_tag @suspend_button_text %>
+	<% end %>
+<% end %>
+<%= set_field_focus 'va_chart_types' %>

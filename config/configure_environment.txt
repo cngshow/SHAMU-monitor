@@ -1,0 +1,32 @@
+#Edit this configuration file before a deployment
+#File:path from rails root to a file to be modified in place
+#each line after the file is pipe '|' delimited as follows development | test | production
+#If the production element is not present then production is the same as test.
+#this file is used for mongrel based deployments
+
+FILE:./config/commands.txt
+echo development | echo test | echo production
+http://localhost:3000 | http://vahdrtvapp05.aac.va.gov:7021 | http://vahdrtvapp05.aac.va.gov:7020
+c:\cygwin\bin\date|date
+echo last_known_jle_status|echo last_known_jle_status.bash
+
+FILE:./pst_dashboard.properties
+oracle_env=jdbc:oracle:thin:@//hdrtcl03.aac.va.gov:1521/chrdeva | oracle_env=jdbc:oracle:thin:@//hdr2db4v.aac.va.gov:1569/CHDRP01.AAC.VA.GOV
+log_level=DEBUG|log_level=INFO
+job_engine_port=2002|job_engine_port=2002|job_engine_port=2001
+PST_Team=cristopher.shupp@va.gov|PST_Team=cristopher.shupp@va.gov|PST_Team=VAOEDICPEOIIPMOHITSCHDRProductionSupport@va.gov
+PST_Team=gregory.bowman@va.gov|PST_Team=gregory.bowman@va.gov|PST_Team=VAOEDICPEOIIPMOHITSCHDRProductionSupport@va.gov
+root_url=http://localhost:3000 | root_url=http://vahdrtvapp05.aac.va.gov:7021 | root_url=http://vahdrtvapp05.aac.va.gov:7020
+historical_url=http://localhost:3000/historical_charts/data/DATE/hc_data.zip | historical_url=http://vahdrtvapp05.aac.va.gov:7021/historical_charts/data/DATE/hc_data.zip | historical_url=http://vahdrtvapp05.aac.va.gov:7020/historical_charts/data/DATE/hc_data.zip
+historical_charting_url=http://localhost:3000/historical_charts/SHAMU_charts_v3.jnlp | historical_charting_url=http://vahdrtvapp05.aac.va.gov:7021/historical_charts/SHAMU_charts_v3.jnlp | historical_charting_url=http://vahdrtvapp05.aac.va.gov:7020/historical_charts/SHAMU_charts_v3.jnlp
+shamu_version=5.0.003_development|shamu_version=5.0.003_test|shamu_version=5.0.003_production
+temp_file_marker=_dev_|temp_file_marker=_test_|temp_file_marker=_prod_
+
+FILE:./public/historical_charts/charting.properties
+http://localhost:3000 | http://vahdrtvapp05.aac.va.gov:7021 | http://vahdrtvapp05.aac.va.gov:7020
+
+FILE:./public/real_time_charting/realtime_params.properties
+http://localhost:3000 | http://vahdrtvapp05.aac.va.gov:7021 | http://vahdrtvapp05.aac.va.gov:7020
+
+FILE:./public/historical_charts/SHAMU_charts_v3.jnlp
+http://localhost:3000 | http://vahdrtvapp05.aac.va.gov:7021 | http://vahdrtvapp05.aac.va.gov:7020

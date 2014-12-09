@@ -1,0 +1,17 @@
+<%
+	return if @jle.get_escalation.nil?
+	preamble = @jle.get_escalation.email_preamble
+	return if preamble.nil? || preamble.strip.empty?
+
+	color_name ="green" 
+	color_name = @jle.get_escalation.color_name unless @jle.get_escalation.nil?
+	border_color = color_name.eql?("green") ? "green" : JobMetadata.escalation_color_data(color_name)[0]
+	style = "border-width: 2px; border:solid; width:600px; border-color:" + border_color + ";padding: 10px;"
+	return if (border_color.eql?("green"))
+%>
+
+<div style="<%=style%>">
+	Escalation Description:<br>
+	<%= @jle.get_escalation.email_preamble%>
+	<br><br>
+</div>

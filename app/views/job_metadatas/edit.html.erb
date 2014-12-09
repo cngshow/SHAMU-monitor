@@ -1,0 +1,278 @@
+<script type="text/javascript">
+    function checkReadonly(elemId, isReadonly, isIntroscope){
+        var e = $(elemId)
+        
+        if (e.type == 'checkbox') 
+            e.disabled = isReadonly;
+        else 
+            e.readOnly = isReadonly;
+        
+        if (!isReadonly && !isIntroscope) {
+            e.focus();
+        }
+    }
+    
+    function checkIntroscopeReadonly(elemIds, isReadonly){
+        var splitResults = elemIds.split(',');
+        
+        if (splitResults.length > 0) {
+            var firstId = splitResults[0];
+            
+            for (i = 0; i < splitResults.length; i++) {
+                checkReadonly(splitResults[i], isReadonly, true);
+            }
+            
+            if (!isReadonly) {
+                $(firstId).focus();
+            }
+        }
+    }
+    
+    function resizeTA(elem, focus, rowInc)
+    {
+    	var inc = rowInc ? rowInc : 5;
+    	elem.rows = focus ? elem.rows + inc : elem.rows - inc;
+    }
+</script>
+
+<%= form_for(@job_metadata, :url => { :action => "update" }) do |f| %>
+	<table width="95%">
+	    <tr>
+	        <td width="100%" colspan="4">
+	            <%= f.label :short_desc, "Short Description:" %>
+	            <br/>
+	            <%= f.text_field :short_desc, :maxlength => 50 %>
+	        </td>
+	    </tr>
+	    <tr>
+	        <td colspan="4" width="100%">
+	            <%= f.label :desc, "Job Description:" %>
+	            <br/>
+	            <%= f.text_area :desc, :cols=>110, :rows=>4, :onfocus => 'resizeTA(this, true, 8);', :onblur => 'resizeTA(this, false, 8);' %>
+	        </td>
+	    </tr>
+	    <tr>
+	        <td width="25%">
+	            <%= f.label :active, "Active:" %>
+	            <br/>
+	            <%= f.check_box :active %>
+	        </td>
+	        <td width="75%" colspan="3">
+	            <%= f.label :max_execution_minutes, "Max Execution Time (in minutes):" %>
+	            <br/>
+	            <%= f.text_field :max_execution_minutes, :size=>10 %>
+	        </td>
+	    </tr>
+	    <tr>
+	        <td width="25%" valign="top">
+	            <%= f.label :enabled_as_service, "Enable to Run as a Service:" %>
+	            <br/>
+	            <%= f.check_box :enabled_as_service, :onclick => "toggleDiv('stale_div');" %>
+	        </td>
+	        <td width="75%" colpan="3">
+	            <div id="stale_div" style="<%= @job_metadata.enabled_as_service ? 'display: block' : 'display: none' %>">
+	                <fieldset>
+	                    <legend>
+	                        Service Settings
+	                    </legend>
+	                    <table width="100%">
+	                        <tr>
+	                            <td width="50%" valign="top">
+	                                <%= f.label :stale_after_min, "Stale Data after x minutes:" %>
+	                                <br/>
+	                                <%= f.text_field :stale_after_min, :size=>10 %>
+	                            </td>
+	                            <td width="50%">
+	                                &nbsp;
+	                            </td>
+	                        </tr>
+	                    </table>
+	                </fieldset>
+	            </div>
+	        </td>
+	    </tr>
+	    <tr>
+	        <td width="25%" valign="top">
+	            <%= f.label :email_result, "E-Mail Job Result:" %>
+	            <br/>
+	            <%= f.check_box :email_result, :onclick => "toggleDiv('email_notification');" %>
+	        </td>
+	        <td colspan="3" width="75%">
+	            <div id="email_notification" style="<%= @job_metadata.email_result ? 'display: block' : 'display: none' %>">
+	                <fieldset>
+	                    <legend>
+	                        E-Mail Notification
+	                    </legend>
+	                    <table width="100%">
+	                        <tr>
+	                            <td width="50%" valign="top">
+	                                <%= f.label :email_to, "E-Mail To:" %>
+	                                <br/>
+	                                <%= f.text_area :email_to, :cols=>40, :rows=>3, :onfocus => 'resizeTA(this, true);', :onblur => 'resizeTA(this);' %>
+	                            </td>
+	                            <td width="50%" valign="top">
+	                                <%= f.label :email_content_type, "E-Mail Content Type:" %>
+	                                <br/>
+	                                <%= f.radio_button :email_content_type, 'text/html' %>HTML&nbsp;&nbsp;<%= f.radio_button :email_content_type, 'text/plain' %>Text
+	                                <br/>
+	                                <br/>
+	                                <%= f.label :incl_attachment, "Include E-Mail Attachment:" %>
+	                                <br/>
+	                                <%= f.check_box :incl_attachment, :onclick => "checkReadonly('attachment_path', ! this.checked);" %>
+	                            </td>
+	                        </tr>
+	                        <tr>
+	                            <td width="50%" valign="top">
+	                                <%= f.label :email_cc, "E-Mail CC:" %>
+	                                <br/>
+	                                <%= f.text_area :email_cc, :cols=>40, :rows=>3, :onfocus => 'resizeTA(this, true);', :onblur => 'resizeTA(this);' %>
+	                            </td>
+	                            <td width="50%" valign="top">
+	                                <%= f.label :attachment_path, "Attachment File Path:" %>
+	                                <br/>
+	                                <%= f.text_area :attachment_path, :cols=>40, :rows=>3, :onfocus => 'resizeTA(this, true);', :onblur => 'resizeTA(this);', :id => 'attachment_path', :readonly => ! @job_metadata.incl_attachment %>
+	                            </td>
+	                        </tr>
+	                    </table>
+	                </fieldset>
+	            </div>
+	        </td>
+	    </tr>
+	    <tr>
+	        <td width="25%" valign="top">
+	            <%= f.label :track_status_change, "Track Status Changes (Red/Green Light):" %>
+	            <br/>
+	            <%= f.check_box :track_status_change, :onclick => "toggleDiv('status_change');" %>
+	        </td>
+	        <td colspan="3" width="75%">
+	            <div id="status_change" style="<%= @job_metadata.track_status_change ? 'display: block' : 'display: none' %>">
+	                <fieldset>
+	                    <legend>
+	                        Trackable Job Information
+	                    </legend>
+	                    <table width="100%">
+	                        <tr>
+	                            <td width="50%" valign="top">
+	                                <%= f.label :email_on_status_change_only, "Send E-Mail on Status Change Only:" %>
+	                                <br/>
+	                                <%= f.check_box :email_on_status_change_only, :onclick => "checkReadonly('minutes_between_status_alert', ! this.checked);" %>
+	                                <br/>
+	                                <span style="font-size: xx-small;">Note: This property is ignored if results are not being e-mailed.</span>
+	                            </td>
+	                            <td width="50%" valign="top">
+	                                <%= f.label :minutes_between_status_alert, "Minutes Between Reminder Alerts (Red Light):" %>
+	                                <br/>
+	                                <%= f.text_field :minutes_between_status_alert, :id => 'minutes_between_status_alert', :readonly => ! @job_metadata.email_on_status_change_only,:size => 10 %>
+	                            </td>
+	                        </tr>
+	                    </table>
+	                </fieldset>
+	                <fieldset>
+	                    <legend>
+	                        Escalation Information
+	                    </legend>
+	                    <br/>
+	                    <span style="font-size: xx-small; color: green">Note: ** The E-Mail properties are ignored if results are not being e-mailed or if we are NOT sending email on status change only.</span>
+	                    <br/>            
+	                     <table width="100%">
+	                    	<tr>
+		                        <th width="6px" align="center" valign="bottom"><br>Color</th>
+								<th align="center">End<br>Min</th>
+								<th align="center" valign="bottom"><br>** E-Mail Preamble</th>
+								<th align="center" valign="bottom"><br>** E-Mail To</th>
+								<th align="center" valign="bottom"><br>** E-Mail CC</th>
+								<th align="center" valign="bottom">** Suppress<br>E-Mail</th>
+								<th align="center" valign="bottom"><br>Enabled</th>
+							</tr>
+							<%= f.fields_for :escalations do |builder| %>
+								<tr  valign="top">
+									<td style="background-color: <%= JobMetadata.escalation_color_data(builder.object.color_name)[0] %>;"/>&nbsp;</td>
+									<td><%= builder.text_field :end_min, :size => 3, :maxlength => 4, :readonly => builder.object.color_name.eql?('RED') %></td>
+									<td valign="top"><%= builder.text_area :email_preamble, :rows => 1, :cols => 40, :onfocus => 'resizeTA(this, true, 8);', :onblur => 'resizeTA(this, false, 8);' %></td>
+									<td valign="top">
+										<%= builder.text_area :email_to, :rows => 1, :cols => 25, :onfocus => 'resizeTA(this, true);', :onblur => 'resizeTA(this);' %>
+									</td>
+									<td valign="top"><%= builder.text_area :email_cc, :rows => 1, :cols => 25, :onfocus => 'resizeTA(this, true);', :onblur => 'resizeTA(this);' %></td>
+									<td valign="top" align="center"><%= builder.check_box :suppress_email, :disabled => builder.object.color_name.eql?('RED')  %></td>
+									<td valign="top" align="center"><%= builder.check_box :enabled, :disabled => builder.object.color_name.eql?('RED') %></td>
+								</tr>
+							<% end %>  
+						</table>
+	                </fieldset>
+	                <fieldset>
+		                <legend>
+		                    Introscope Information
+		                </legend>
+		                <table width="100%">
+		                    <tr>
+		                        <td width="30%" valign="top">
+		                            <%= f.label :introscope_enabled, "Integrate with Introscope:" %>
+		                            <br/>
+		                            <%= f.check_box :introscope_enabled, :onclick => "checkIntroscopeReadonly('use_introscope_job_code,use_introscope_short_desc,use_introscope_long_desc', ! this.checked);" %>
+		                        </td>
+		                        <td width="70%">
+		                            <%= f.label :use_introscope_job_code, "Use This Job Code in Introscope?:" %>
+		                            <br/>
+		                            <%= f.check_box :use_introscope_job_code, :id => 'use_introscope_job_code', :disabled => ! @job_metadata.introscope_enabled %>
+		                            <br/>
+		                            <%= f.label :introscope_job_code, "Introscope Job Code:" %>
+		                            <br/>
+		                            <%= f.text_field :introscope_job_code, :id => 'introscope_job_code', :size => 50 %>
+		                            <br/>
+		                            <%= f.label :use_introscope_short_desc, "Use This Short Desc within Introscope?:" %>
+		                            <br/>
+		                            <%= f.check_box :use_introscope_short_desc, :id => 'use_introscope_short_desc', :disabled => ! @job_metadata.introscope_enabled %>
+		                            <br/>
+		                            <%= f.label :introscope_short_desc, "Introscope Short Description:" %>
+		                            <br/>
+		                            <%= f.text_field :introscope_short_desc, :id => 'introscope_short_desc', :size => 50 %>
+		                            <br/>
+		                            <%= f.label :use_introscope_long_desc, "Use This Long Desc within Introscope?:" %>
+		                            <br/>
+		                            <%= f.check_box :use_introscope_long_desc, :id => 'use_introscope_long_desc', :disabled => ! @job_metadata.introscope_enabled %>
+		                            <br/>
+		                            <%= f.label :introscope_long_desc, "Introscope Long Description:" %>
+		                            <br/>
+		                            <%= f.text_area :introscope_long_desc, :id => 'introscope_long_desc', :cols=>40, :rows=>3, :onfocus => 'resizeTA(this, true);', :onblur => 'resizeTA(this);' %>
+		                        </td>
+		                    </tr>
+		                </table>
+		        	</fieldset>
+	        	</div>
+	    	</td>
+	    </tr>
+<!--
+	    <tr>
+	        <td width="25%" valign="top">
+	            <%#= f.label :suspend, "Suspend Job Execution:" %>
+	            <br/>
+	            <%#= f.check_box :suspend, :onclick => "toggleDiv('suspend_job');" %>
+	        </td>
+	        <td colspan="3" width="75%">
+	            <div id="suspend_job" style="<%#= @job_metadata.suspend ? 'display: block' : 'display: none' %>">
+	                <fieldset>
+	                    <legend>
+	                        Job Suspension Settings
+	                    </legend>
+	                    <table width="100%">
+	                        <tr>
+	                            <td width="50%">
+	                                <%#= f.label :stop, "Stop Job Execution (Entered in Your Local Time):" %>
+	                                <br/>
+	                                <%#= f.calendar_date_select :stop, :embedded => true, :time => true, :month_year => "label",:american => true %>
+	                            </td>
+	                            <td width="50%">
+	                                <%#= f.label :resume, "Resume Job Execution (Entered in Your Local Time):" %>
+	                                <br/>
+	                                <%#= f.calendar_date_select :resume, :embedded => true, :time => true, :month_year => "label",:american => true %>
+	                            </td>
+	                        </tr>
+	                    </table>
+	                </fieldset>
+	            </div>
+	        </td>
+	    </tr>
+-->
+	</table>
+<% end %>
+<%= set_field_focus 'job_metadata_short_desc' %>

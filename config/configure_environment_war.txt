@@ -1,0 +1,97 @@
+#Edit this configuration file before a deployment
+#File:path from rails root to a file to be modified in place
+#each line after the file is pipe '|' delimited as follows development | development(war based) | test | production
+#If only two elements (foo|faa) then faa is used for dev, test and prod
+#this file is used for weblogic based deployments
+
+FILE:./config/commands.txt
+echo development | echo development |echo test | echo production
+http://localhost:3000 | http://localhost:7001/PSTDashboard/ | http://vahdrtvapp05.aac.va.gov:7031/PSTDashboard/ | http://vahdrtvapp05.aac.va.gov:7011/PSTDashboard/
+c:\cygwin\bin\date| c:\cygwin\bin\date | date | date
+echo last_known_jle_status| echo last_known_jle_status | echo last_known_jle_status.bash | echo last_known_jle_status.bash
+./lib/jars/jruby-complete-1.6.7.2.jar|./lib/lib-jars-jruby-complete-1.6.7.2.jar
+./public|..
+http://localhost:3000 | http://localhost:7001/PSTDashboard |http://vahdrtvapp05.aac.va.gov:7031/PSTDashboard | http://vahdrtvapp05.aac.va.gov:7011/PSTDashboard
+C:\Oracle\Ora11gclient\product\11.1.0\client_1\bin\sqlplus|/u01/app/oracle/client/product/11.1.0/client_1/bin/sqlplus
+C:\oracle\product\11.2.0\client_1\BIN\sqlplus|/u01/app/oracle/client/product/11.1.0/client_1/bin/sqlplus
+
+FILE:./pst_dashboard.properties
+oracle_env=jdbc:oracle:thin:@//hdrtcl03.aac.va.gov:1521/chrdeva | oracle_env=jdbc:oracle:thin:@//hdr2db4v.aac.va.gov:1569/CHDRP01.AAC.VA.GOV
+log_level=DEBUG|log_level=INFO
+job_engine_port=2002 | job_engine_port=2002 |job_engine_port=2002|job_engine_port=2001
+PST_Team=cristopher.shupp@va.gov|PST_Team=cristopher.shupp@va.gov|PST_Team=cristopher.shupp@va.gov|PST_Team=VAOEDICPEOIIPMOHITSCHDRProductionSupport@va.gov
+PST_Team=gregory.bowman@va.gov|PST_Team=gregory.bowman@va.gov|PST_Team=gregory.bowman@va.gov|PST_Team=VAOEDICPEOIIPMOHITSCHDRProductionSupport@va.gov
+http://localhost:3000|http://localhost:7001/PSTDashboard|http://vahdrtvapp05.aac.va.gov:7031/PSTDashboard|http://vahdrtvapp05.aac.va.gov:7011/PSTDashboard
+shamu_version=5.0.003_development|shamu_version=5.0.003_development_wl|shamu_version=5.0.003_test_wl|shamu_version=5.0.003_production_wl
+temp_file_marker=_dev_|temp_file_marker=_dev_|temp_file_marker=_test_|temp_file_marker=_prod_
+./lib/jars/jruby-complete-1.6.7.2.jar|./lib/lib-jars-jruby-complete-1.6.7.2.jar
+./public|..
+GEM_HOME_IGNORED=./gems|GEM_HOME=./gems
+./gem_home/|./gems/
+
+FILE:./jobs/tasks/message_replay/SpringMessageReplayBeans.xml
+java.naming.provider.url=t3://vahdrtvapp05.aac.va.gov:7001 | java.naming.provider.url=t3://vahdrtvapp05.aac.va.gov:7001 | java.naming.provider.url=t3://vahdrppwls12.aac.va.gov:7171
+java.naming.security.principal=weblogic | java.naming.security.principal=weblogic | java.naming.security.principal=shamu
+java.naming.security.credentials=chdr21dev | java.naming.security.credentials=chdr21dev | java.naming.security.credentials=shamu1234$
+
+FILE:./public/historical_charts/charting.properties
+http://localhost:3000 | http://localhost:7001/PSTDashboard |http://vahdrtvapp05.aac.va.gov:7031/PSTDashboard | http://vahdrtvapp05.aac.va.gov:7011/PSTDashboard
+
+FILE:./public/real_time_charting/realtime_params.properties
+http://localhost:3000 | http://localhost:7001/PSTDashboard |http://vahdrtvapp05.aac.va.gov:7031/PSTDashboard | http://vahdrtvapp05.aac.va.gov:7011/PSTDashboard
+/real_time_charting/|/PSTDashboard/real_time_charting/
+
+FILE:./public/historical_charts/SHAMU_charts_v3.jnlp
+http://localhost:3000 | http://localhost:7001/PSTDashboard |http://vahdrtvapp05.aac.va.gov:7031/PSTDashboard | http://vahdrtvapp05.aac.va.gov:7011/PSTDashboard
+
+FILE:./config/warble.rb
+development|development|test|production
+
+FILE:./config/application.rb
+mailproxy.aac.va.gov|mailproxy.aac.va.gov
+
+FILE:./jobs/tasks/message_replay/SpringMessageReplayBeans.xml
+t3://islchd01.fo-slc.med.va.gov:8003|t3://vahdrtvapp05.aac.va.gov:7001
+java.naming.security.credentials=chdr1034|java.naming.security.credentials=chdr21dev
+
+File:./jobs/tasks/message_replay/caip_resources/terminology.properties
+caip.configuration.url=t3://hdrclunds-lp.fo-slc.med.va.gov:7001|caip.configuration.url=t3://hdrclunds-lp.fo-slc.med.va.gov:7001
+caip.configuration.siteName=SLCDEV|caip.configuration.siteName=SLCDEV
+caip.configuration.nds.connection.user=caipprocess|caip.configuration.nds.connection.user=caipprocess
+caip.configuration.nds.connection.password={3DES}F6KrWewnUOh1259rarwEDw==|caip.configuration.nds.connection.user=caipprocess
+caip.configuration.delegate.sts.application=STS2-DEV|caip.configuration.delegate.sts.application=STS2-DEV
+
+File:./config/database.yml
+url: jdbc:oracle:thin:@hdrtcl03.aac.va.gov:1521:chrdeva1|url: jdbc:oracle:thin:@hdrtcl03.aac.va.gov:1521:chrdeva1
+username: shamu_prod|username: shamu_prod|username: shamu_prod|username: shamu_prod
+password: pr0dsh4mu!|password: pr0dsh4mu!|password: pr0dsh4mu!|password: pr0dsh4mu!
+
+FILE:./database_trim.bash
+./lib/jars/jruby-complete-1.6.7.2.jar|./lib/lib-jars-jruby-complete-1.6.7.2.jar
+
+FILE:./execute_job.bash
+./lib/jars/jruby-complete-1.6.7.2.jar|./lib/lib-jars-jruby-complete-1.6.7.2.jar
+
+FILE:./introscope_alerts.bash
+./lib/jars/jruby-complete-1.6.7.2.jar|./lib/lib-jars-jruby-complete-1.6.7.2.jar
+
+FILE:./kill_shamu.bash
+./lib/jars/jruby-complete-1.6.7.2.jar|./lib/lib-jars-jruby-complete-1.6.7.2.jar
+
+FILE:./last_known_jle_status.bash
+./lib/jars/jruby-complete-1.6.7.2.jar|./lib/lib-jars-jruby-complete-1.6.7.2.jar
+
+FILE:./prepare_escalations.bash
+./lib/jars/jruby-complete-1.6.7.2.jar|./lib/lib-jars-jruby-complete-1.6.7.2.jar
+
+FILE:./rename_job_code.bash
+./lib/jars/jruby-complete-1.6.7.2.jar|./lib/lib-jars-jruby-complete-1.6.7.2.jar
+
+FILE:./repair_escalations.bash
+./lib/jars/jruby-complete-1.6.7.2.jar|./lib/lib-jars-jruby-complete-1.6.7.2.jar
+
+FILE:./shamu_env.bash
+./lib/jars/jruby-complete-1.6.7.2.jar|./lib/lib-jars-jruby-complete-1.6.7.2.jar
+
+FILE:./startup.bash
+./lib/jars/jruby-complete-1.6.7.2.jar|./lib/lib-jars-jruby-complete-1.6.7.2.jar

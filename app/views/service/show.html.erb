@@ -1,0 +1,93 @@
+<% field_focus = nil %>
+
+<table width="100%">
+  <tr>
+    <td width="50%">
+      <b>Job Code:</b>
+      <%= h @service.job_code %>
+    </td>
+    <td width="50%">
+      <b>Short Description:</b>
+      <%= h @service.short_desc %>
+    </td>
+  </tr>
+  <tr>
+    <td width="100%" colspan="2">
+      <b>Job Long Description:</b>
+      <%= h @service.desc %>
+    </td>
+  </tr>
+</table>
+<% unless @updateable_args.empty?
+     show_never_run_msg    = false
+     show_config_error_msg = false
+     never_run_msg         = "This job has not been run since rebooting SHAMU. Therefore, SHAMU is unable to pre-fill the parameter with the default value from memory."
+     config_error_msg      = "There is a configuration error associated with the input arguments for this job. Please fix the configuration before attempting to run this as a service."
+%>
+    <hr><br><br>
+    <%= form_tag service_execute_with_params_path do %>
+        <fieldset>
+          <legend>Service Request Parameters</legend>
+          <table width="90%" cellpadding="5px">
+            <%
+
+               @updateable_args.keys.each do |arg|
+                 val_array = @updateable_args[arg]
+                 label = val_array[1]
+                 note = val_array[2]
+                 field_length = val_array[3]
+
+                 if val_array[5].nil?
+                   label                 = "Configuration error for #{arg.to_s}. Please specify a label, entry note, input size, validation msg, and regex!"
+                   val                   = "Configuration Error"
+                   show_config_error_msg = true
+                 else
+                   val = JobEngine.instance.gather_cached_argument_val(@service.job_code, arg)
+
+                   if (@sticky_value_hash.nil?)
+                       val = val.nil? ? "NEVER RUN" : val
+                   else
+                     val = @sticky_value_hash[arg] unless @sticky_value_hash[arg].nil?
+                   end
+                 end
+
+                 if val.eql?("NEVER RUN")
+                   show_never_run_msg = true
+                 end
+
+                 replace_string = ""
+                 if (! @arg_error_hash.nil? && ! @arg_error_hash[arg].nil?)
+                   replace_string = "<br><span style=\"color: red\">#{@arg_error_hash[arg]}</span>"
+                   field_focus = arg.to_s
+                 end
+
+                 row_output = "<tr valign=\"top\"><td width=\"25%\" align=\"right\"><b>#{label}:</b></td>"
+                 row_output += "<td width=\"75%\" align=\"left\"><input type=\"text\" id=\"#{arg.to_s}\" name=\"#{arg.to_s}\" value=\"#{val}\" size=\"20\" maxlength=\"#{field_length}\" "
+                 row_output += "class=\"argInputError\"" unless replace_string.empty?
+                 row_output += val.eql?("Configuration Error") ? " readonly" : ""
+                 row_output += ">&nbsp;#{note}##error_msg##</td></tr>"
+                 row_output.gsub!("##error_msg##", replace_string)
+            %>
+                <%= raw row_output %>
+            <% end %>
+            <% unless show_config_error_msg %>
+                <tr>
+                  <td width="25%">&nbsp;</td>
+                  <td width="75%" align="left">
+                    <% if JobEngine.instance.started? %>
+                        <%= submit_tag "Execute with input parameters", :id => "submit_button" %>
+                    <% end %>
+                  </td>
+                </tr>
+            <% end %>
+          </table>
+          <br>
+          <br>
+          <% if show_never_run_msg || show_config_error_msg %>
+              <span style="color: <%= show_config_error_msg ? "red" : "green" %>; font-size: small; margin-left: 20px;">Note:&nbsp;&nbsp;<%= show_config_error_msg ? config_error_msg : never_run_msg %></span>
+          <% end %>
+        </fieldset>
+    <% end %>
+<% end %>
+
+<%= set_field_focus(field_focus, true) unless field_focus.nil? %>

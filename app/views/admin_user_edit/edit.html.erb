@@ -1,0 +1,24 @@
+<%#= form_for(@user, :url => admin_user_update_path) do |f| %>
+
+<%= form_for :user, :url => admin_user_update_path do |f|%>
+
+  <div><%= f.label :username %><br />
+  <%= f.text_field :username %></div>
+
+  <div><%= f.label :email %><br />
+  <%= f.email_field :email %></div>
+
+  <div><%= f.label :password %> <i>(leave blank if you don't want to change it)</i><br />
+  <%= f.password_field :password %></div>
+
+  <div><%= f.label :password_confirmation %><br />
+  <%= f.password_field :password_confirmation %></div>
+
+  <div><%= f.label :current_password %> <i>(we need your current password to confirm your changes)</i><br />
+  <%= f.password_field :current_password %></div>
+
+    <div><%= f.label :administrator, "Enable as Administrator?:" %><br/>
+    <%= f.check_box :administrator%>
+    </div>
+
+<% end %>

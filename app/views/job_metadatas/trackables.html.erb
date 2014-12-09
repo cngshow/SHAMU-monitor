@@ -1,0 +1,47 @@
+<% if (session[:trackables_refresh]) %> 
+	<script language="JavaScript" type="text/javascript">
+		autoRefreshOn();
+	</script>
+<% end %>
+
+<table class="hovertable">
+  <tr>
+    <th>Job code</th>
+    <th>Short Description</th>
+    <th>Last Completed</th>
+    <th>Status</th>
+    <th>Alert Start</th>
+	<th>Elapsed Time</th>
+  </tr>
+<% 
+	@trackables.each do |job_metadata|
+	job_code = job_metadata.job_code
+	jle = job_metadata.get_last_known_status
+    alert_start_jle = JobLogEntry.get_last_tracked_status_change(job_code)
+	alert_start = alert_start_jle.nil? ? '' : alert_start_jle.finish_time
+    elapsed_time = alert_start_jle.nil? ? '' : convert_seconds_to_time(Time.now - alert_start) unless (!alert_start_jle.nil? && alert_start_jle.finish_time.nil?)
+	elapsed_time = "Running for first time" if (!alert_start_jle.nil? && alert_start_jle.finish_time.nil?)
+%>
+  <tr onmouseover='this.className="hoverOver";'
+  	  onmouseout='this.className="hoverOut";'
+	  <%= raw 'onclick="document.location.href=\'' + job_log_entry_path(jle.id) + '\';"' unless jle.nil? %>
+	>
+    <td><%=h job_code %></td>
+	<td><%=h job_metadata.short_desc %></td>
+	<td width="180px"><%=jle.nil? ? "Not Run" : display_time(jle.finish_time) %></td>
+	<td align="center">
+		<!--#banana slug work below-->
+		<% unless jle.nil?
+			escalation = jle.get_escalation()
+			esc_title = escalation.nil? ? "All is good..." : (escalation.email_preamble.nil? || escalation.email_preamble.empty? ? "" : escalation.email_preamble)
+			esc_color = escalation.nil? ? "green" : JobMetadata.escalation_color_data(escalation.color_name)[0]
+			esc_style = "background-color:" + esc_color + "; width:14px; height:14px; border-width:2px; border-style:ridge; border-color:" + esc_color
+		%>
+			<span style="<%= esc_style %>" title="<%= esc_title %>">&nbsp;&nbsp;&nbsp;</span>
+		<% end %>
+	</td>
+	<td align="center"><%=alert_start.eql?("") ? "" : display_time(alert_start) %></td>
+	<td><%=h elapsed_time %></td>
+  </tr>
+<% end %>
+</table>

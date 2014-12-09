@@ -1,0 +1,47 @@
+These procedures are for starting SHAMU while it lives on App05.  Eventually Raja will own it (that work will begin after the replay services complete).  At that point theses instructions will not be true and Raja will know how to start it, not us…
+
+Log into App05 via (make the purple string be your App05 id):
+
+ssh t192zcs@vahdrtvapp05.aac.va.gov
+
+After logging in start up vncserver if it is not started
+
+vncserver -geometry 1440x900
+
+Then sudo as weblogic as so (If your ID cannot do this contact a UNIX admin and have them add this role to your ID) via:
+
+sudo su - weblogic
+
+Enter your regular password.
+
+cd into the following directory via:
+
+cd /u01/app/domains/shamu
+
+Start weblogic via:
+
+nohup startWebLogic.sh &
+
+Watch weblogic come up via:
+
+tail –f nohup.out
+
+When you see this you are up!:
+
+<Apr 24, 2013 8:55:32 AM CDT> <Notice> <WebLogicServer> <BEA-000360> <Server started in RUNNING mode>
+
+Go to the weblogic console here:
+
+http://vahdrtvapp05.aac.va.gov:7010/console/console.portal?_nfpb=true&_pageLabel=HomePage1
+
+shamu weblogic credentials are login id = weblogic  pw = shamuwls1
+
+
+Go to the deployments section and start the application called ‘PSTDashboard’ as this is SHAMU (PST = Production Support Team)
+
+Hit SHAMU’s url:
+
+http://vahdrtvapp05.aac.va.gov:7011/
+
+login and start the job engine via the link “Set Job Credentials”.  You must have an ID to the CHDR audit log.  (this step vanishes when Raja takes ownership)
+The list of people that can do this final step (that I know of) are Cris Shupp, Greg Bowman, and Joe Valentine.

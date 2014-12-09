@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:context="http://www.springframework.org/schema/context"
+  xmlns:p="http://www.springframework.org/schema/p"
+  xmlns:jee="http://www.springframework.org/schema/jee"
+  xmlns:util="http://www.springframework.org/schema/util"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+           http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.0.xsd
+           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd
+           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+  <jee:remote-slsb id="serviceBusBean" lookup-home-on-startup="false"
+              jndi-name="ServiceBus#gov.va.med.datasharing.core.ServiceBus"
+              resource-ref="false" business-interface="gov.va.med.datasharing.core.ServiceBus">
+              <jee:environment>
+                    java.naming.factory.initial=weblogic.jndi.WLInitialContextFactory
+                    java.naming.provider.url=t3://vahdrtvapp05.aac.va.gov:7001
+                    java.naming.security.principal=weblogic
+					java.naming.security.credentials=chdr21dev
+              </jee:environment>
+        </jee:remote-slsb>
+</beans>
+
+<!--
+This is the setup for unix testing.  Courtesy of Mike Bergmann
+                    java.naming.provider.url=t3://vahdrtvapp05.aac.va.gov:7001
+
+                    java.naming.security.principal=weblogic
+                    java.naming.security.credentials=chdr21dev
+
+
+                     java.naming.provider.url=t3://islchd01.fo-slc.med.va.gov:8003
+                    java.naming.security.credentials=chdr1034
+-->

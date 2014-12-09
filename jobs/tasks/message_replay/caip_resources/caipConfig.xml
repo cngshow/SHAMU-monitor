@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- xsi:schemaLocation should contain fully qualified schema file name -->
+<CaipClientConfiguration xmlns="http://med.va.gov/CommonServices/CAIP"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://med.va.gov/CommonServices/CAIP http://med.va.gov/CommonServices/caipConfig.xsd">
+	<SiteName>${caip.configuration.placeholder.siteName}</SiteName>
+	<BusinessDelegates>
+    	<BusinessDelegate>
+      		<DelegateId>CHDRDelegate_RemoteEJB</DelegateId>    
+      		<Signature>gov.va.med.term.stakeholders.chdr.CHDRInterface</Signature>
+      		<ImplementationClass>gov.va.med.term.stakeholders.chdr.CHDRDelegate</ImplementationClass>
+      		<TransportTechnology>RemoteEJB</TransportTechnology>
+      		<Application>${caip.configuration.placeholder.delegate.sts.application}</Application>
+    	</BusinessDelegate>
+	</BusinessDelegates>
+	<NDSConnections>
+		<NDSConnection>
+			<Name>${caip.configuration.placeholder.nds.connection.name}</Name>
+			<Provider>weblogic.jndi.WLInitialContextFactory</Provider>
+			<Url>${caip.configuration.placeholder.url}</Url>
+			<Priority>1</Priority>
+			<!-- User and Password for v3.0 -->
+			<User>${caip.configuration.placeholder.nds.connection.user}</User>
+			<Password>${caip.configuration.placeholder.nds.connection.password}</Password>
+		</NDSConnection>
+	</NDSConnections>
+	<PerformanceMetrics>
+		<ConfigureCaip>true</ConfigureCaip>
+		<ServiceNarrowingRebinding>true</ServiceNarrowingRebinding>
+		<NDSLookup>true</NDSLookup>
+		<ProxyInvocation>true</ProxyInvocation>
+	</PerformanceMetrics>
+</CaipClientConfiguration>

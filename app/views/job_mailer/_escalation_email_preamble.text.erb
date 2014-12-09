@@ -1,0 +1,5 @@
+<%
+	return if @jle.get_escalation.nil?
+%>
+Escalation Description:
+<%= @jle.get_escalation.email_preamble %>

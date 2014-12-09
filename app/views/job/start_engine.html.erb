@@ -1,0 +1,18 @@
+<%form_for :user, :url => start_engine_path do |f| %>
+<!--check JobData.valid_credentials disallow start button if not valid-->
+	<%if current_user().administrator %>
+		<h1>The current Oracle Credential in use is: <%=JobData.oracle_id %>.</h1>
+		<p>
+		    The job execution engine is started? <%= JobEngine.instance.started? %>
+		</p>
+		<p>
+		<%
+			btnText = JobEngine.instance.started? ? "Stop" : "Start"
+		%>
+	    
+		<%=submit_tag btnText << " Job Engine" %>
+		</p>
+	<%else %>
+		<h1>You must be an administrator to view this page</h1>
+	<% end -%>
+<% end -%>

@@ -1,0 +1,32 @@
+<table width="100%">
+   <tr>
+     <td width="70%"><%= link_to image_tag("va_header.GIF", :border => 0), root_path %></td>
+     <td width="30%" align="right">
+       <table>
+         <% if current_user %>
+             <tr>
+               <td width="50%" align="right"><b>Current user is:</b></td>
+               <td width="50%" align="left"><%= current_user.username %></td>
+             </tr>
+         <% end %>
+         <tr>
+           <td width="50%" align="right"><b>Current Credentials:</b></td>
+           <td width="50%" align="left"><%= JobData.oracle_id %></td>
+         </tr>
+         <tr>
+           <td width="50%" align="right"><b>Job Engine Status:</b></td>
+           <td width="50%" align="left">
+             <%
+                suspended = (system_suspended? ? " (Suspended)" : "")
+             %>
+             <span style="color: <%= @job_engine_status[0] %>"><%= @job_engine_status[1] + suspended %></span>
+           </td>
+         </tr>
+         <tr>
+           <td width="50%" align="right"><b>Current Server Time:</b></td>
+           <td width="50%" align="left"><%= Time.now.strftime("%m/%d/%y at %I:%M%p").downcase %></td>
+         </tr>
+       </table>
+     </td>
+   </tr>
+ </table>

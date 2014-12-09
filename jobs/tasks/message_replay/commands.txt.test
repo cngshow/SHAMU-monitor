@@ -1,0 +1,827 @@
+######################################################################################################################
+#variables section.  Variables begin with a ! sign and the value will be whatever the assigned script returns
+#so suppose c:\myscript.pl returns the current time such as 5:23.26, then !time=c:\myscript.pl would result in
+#!time being usable to pass the parameter 5:23.26 to any other script.
+#Bound variables are variables (like!time above) bound to a job in the example below, !time_range is bound to two jobs (HDR_ALERT,MPI_ALERT)
+#Note that nesting bound variables on the right hand side is legal.
+#Example: !time_range ==> HDR_ALERT,MPI_ALERT = ./jobs/ruby/helpers/hdr_timer.rb !lookback !lookback30 !lookback60 !lookback !lookback60
+#Special modifiers:
+#RUBY_EVAL_CODE will execute a snippet of ruby code in SHAMU's jvm.  Cheaper then spinning off a jvm, for example do this:
+#!timezone = RUBY_EVAL_CODE Time.now.dst? ? 'CDT' : 'CST'
+#instead of this:
+#!timezone = !path_jruby -e "print Time.now.dst? ? 'CDT' : 'CST'"
+#RUBY_EVAL_FILE will cause shamu to load your file and evaluate it.  The last line of your file should be a string result.
+#SECLUDED_RUBY_EVAL_CODE Same as RUBY_EVAL_CODE but in a private child first class loader.  This version cannot see SHAMU libraries
+#and cannot impact SHAMU. RUBY_EVAL_FILE is always secluded.
+#RUBY_EVAL_FILE and SECLUDED_RUBY_EVAL_CODE must really be used like so:
+#RUBY_EVAL_FILE_MYCLASSLOADERTAG SECLUDED_RUBY_EVAL_CODE_MYCLASSLOADERTAG2
+#Use these class loader tags to judiciously reuse class loaders where appropriate
+###########################################################################################################################################
+#note: monthly adc job requires net-sftp gem install
+
+!database_shamu = echo development
+!host_web_server ==> ADC_ANALYZER_CHARTS, ADC_OVERLAY_CHARTS, MESSAGE_BREAKDOWN_CHARTS = echo http://localhost:3000
+
+!curdate ==> MONTHLY_ADC = c:\cygwin\bin\date
+
+!path_jruby = echo java -Djava.awt.headless=true -jar ./lib/jars/jruby-complete-1.6.7.2.jar
+
+#!java_internal = echo RUBY_EVAL_FILE ./jobs/ruby/helpers/java_runner_internal.rb
+
+#!script_sql_invoker = echo !path_jruby ./jobs/ruby/helpers/sql_invoker.rb
+!audit_log_connect_string = echo CHDRP01.AAC.VA.GOV
+#!sqlplus_location = echo C:\Oracle\Ora11gclient\product\11.1.0\client_1\bin\sqlplus
+!sqlplus_location = echo C:\oracle\product\11.2.0\client_1\BIN\sqlplus
+!script_audit_log_user = RUBY_EVAL_CODE JobData.oracle_id
+!script_audit_log_password = RUBY_EVAL_CODE JobData.oracle_password
+!script_rails_root = RUBY_EVAL_CODE Rails.root.to_s
+!script_sql_invoker = echo RUBY_EVAL_FILE_SQL_INVOKER ./jobs/ruby/helpers/sql_invoker_internal.rb !script_audit_log_user !script_audit_log_password !script_rails_root !audit_log_connect_string !sqlplus_location
+#!script_date = echo ./jobs/ruby/helpers/date.rb
+!script_date = echo RUBY_EVAL_FILE_SQL_INVOKER ./jobs/ruby/helpers/date_internal.rb
+#when using this starter ensure you have a space between it and the (), for example:
+#!last_known_status_traffic_flow_va ==> TRAFFIC_FLOW_ALERT_VA = !last_known_starter ("TRAFFIC_FLOW_ALERT_VA", "run_data")
+!last_known_starter = echo RUBY_EVAL_CODE JobMetadata.get_last_known_status_for_jc
+
+######################################################################################################################
+# time zone scripts
+# note: because the database is hosted in the central time zone and some scripts determine their run dates based on the
+# system datetime we are determining the time zone information for central
+######################################################################################################################
+#!timezone = !path_jruby -e "print Time.now.dst? ? 'CDT' : 'CST'"
+#!tz_offset ==> MESSAGE_FLOW_RPT_TODAY, MESSAGE_FLOW_RPT_DAILY, HOURLY_BREAKDOWN_EMAIL, MESSAGE_BREAKDOWN_CHARTS = !path_jruby -e "print Time.now.dst? ? '5' : '6'"
+!timezone = RUBY_EVAL_CODE Time.now.dst? ? 'CDT' : 'CST'
+!tz_offset ==> MESSAGE_FLOW_RPT_TODAY, MESSAGE_FLOW_RPT_DAILY, HOURLY_BREAKDOWN_EMAIL, MESSAGE_BREAKDOWN_CHARTS = RUBY_EVAL_CODE Time.now.dst? ? '5' : '6'
+
+
+######################################################################################################################
+# html formatting templates
+######################################################################################################################
+!html_header = echo ./public/shamu_header.html
+!html_footer = echo ./public/shamu_footer.html
+
+!arg_yesterday ==> VISTA_ELAPSED_TIME_NORTH_CHICAGO, VISTA_ELAPSED_TIME_HEARTLAND_WEST, VISTA_ELAPSED_TIME_HUDSON_VALLEY = !script_date 1
+!arg_today ==> ADC_OVERLAY_CHARTS,MESSAGE_FLOW_RPT_TODAY,MESSAGE_FLOW_RPT_WEEKLY,MESSAGE_FLOW_RPT_MONTHLY,HIST_CHARTING_TODAY,HOURLY_BREAKDOWN_EMAIL = !script_date 0
+
+#lookback in minutes for hourly check alerts, etc. !lookback is the standard lookback
+!lookback=echo 10
+!lookback10=echo 10
+!lookback60=echo 60
+!lookback30=echo 30
+
+###########################################################
+# introscope initialization variables
+###########################################################
+!introscope_metric_data_service_endpoint  ==> HDR_ALERT, MESSAGE_FLOW_RPT_DAILY,MESSAGE_FLOW_RPT_TODAY,HOURLY_BREAKDOWN_EMAIL = echo http://apmmom1prd.aac.va.gov:8082/introscope-web-services/services/MetricsDataService
+!introscope_metric_data_service_user  ==> HDR_ALERT, MESSAGE_FLOW_RPT_DAILY,MESSAGE_FLOW_RPT_TODAY,HOURLY_BREAKDOWN_EMAIL = echo hdr2apm
+!introscope_metric_data_service_password  ==> HDR_ALERT, MESSAGE_FLOW_RPT_DAILY,MESSAGE_FLOW_RPT_TODAY,HOURLY_BREAKDOWN_EMAIL = echo shamu9812!
+
+######################################################################################################################
+# ALERT CONFIGURATIONS
+######################################################################################################################
+
+###########################################################
+# DOD high and low adc automation alert configurations
+#create a clearing count for both the low and high water marks for the ADC automation alert
+###########################################################
+!dod_adc_automation = echo ./jobs/alerts/adc_automation_alert
+
+!last_known_jle_status = echo last_known_jle_status !database_shamu
+!low_water_mark ==> DOD_ADC_AUTOMATION_LOW_ALERT = echo 2
+!high_water_mark ==> DOD_ADC_AUTOMATION_HIGH_ALERT = echo 470
+!lwm_clearing_cnt ==> DOD_ADC_AUTOMATION_LOW_ALERT = echo 15
+!hwm_clearing_cnt ==> DOD_ADC_AUTOMATION_HIGH_ALERT = echo 400
+#!last_run_status_high ==> DOD_ADC_AUTOMATION_HIGH_ALERT = !last_known_jle_status DOD_ADC_AUTOMATION_HIGH_ALERT run_data
+!last_run_status_high ==> DOD_ADC_AUTOMATION_HIGH_ALERT = !last_known_starter ("DOD_ADC_AUTOMATION_HIGH_ALERT", "run_data")
+#!last_run_status_low ==> DOD_ADC_AUTOMATION_LOW_ALERT = !last_known_jle_status DOD_ADC_AUTOMATION_LOW_ALERT run_data
+!last_run_status_low ==> DOD_ADC_AUTOMATION_LOW_ALERT = !last_known_starter ("DOD_ADC_AUTOMATION_LOW_ALERT", "run_data")
+
+DOD_ADC_AUTOMATION_HIGH_ALERT, echo EMAIL_RESULT_BELOW:
+DOD_ADC_AUTOMATION_HIGH_ALERT, cat !html_header
+DOD_ADC_AUTOMATION_HIGH_ALERT, !script_sql_invoker !dod_adc_automation !timezone DOD_ADC_AUTOMATION_HIGH_ALERT !lookback60 -1 !high_water_mark -1 !hwm_clearing_cnt !last_run_status_high
+DOD_ADC_AUTOMATION_HIGH_ALERT, cat !html_footer
+DOD_ADC_AUTOMATION_HIGH_ALERT, echo EMAIL_RESULT_ABOVE:
+
+DOD_ADC_AUTOMATION_LOW_ALERT, echo EMAIL_RESULT_BELOW:
+DOD_ADC_AUTOMATION_LOW_ALERT, cat !html_header
+DOD_ADC_AUTOMATION_LOW_ALERT, !script_sql_invoker !dod_adc_automation !timezone DOD_ADC_AUTOMATION_LOW_ALERT !lookback60 !low_water_mark -1 !lwm_clearing_cnt -1 !last_run_status_low
+DOD_ADC_AUTOMATION_LOW_ALERT, cat !html_footer
+DOD_ADC_AUTOMATION_LOW_ALERT, echo EMAIL_RESULT_ABOVE:
+
+###########################################################
+# DOD_BATCH_EXCHANGE_ALERT
+###########################################################
+!DOD_BATCH_EXCHANGE_SQL = echo ./jobs/alerts/dod_batch_exchange_alert
+!lookback ==> DOD_BATCH_EXCHANGE_ALERT = echo !lookback30
+!z01_lwm ==> DOD_BATCH_EXCHANGE_ALERT = echo 5
+!z01_z06_pct ==> DOD_BATCH_EXCHANGE_ALERT = echo 10
+!clear_pct ==> DOD_BATCH_EXCHANGE_ALERT = echo 20
+#_dod_batch ==> DOD_BATCH_EXCHANGE_ALERT = !last_known_jle_status DOD_BATCH_EXCHANGE_ALERT
+!last_known_status_dod_batch ==> DOD_BATCH_EXCHANGE_ALERT = !last_known_starter ("DOD_BATCH_EXCHANGE_ALERT","")
+
+DOD_BATCH_EXCHANGE_ALERT, echo EMAIL_RESULT_BELOW:
+DOD_BATCH_EXCHANGE_ALERT, cat !html_header
+DOD_BATCH_EXCHANGE_ALERT, !script_sql_invoker !DOD_BATCH_EXCHANGE_SQL !lookback !timezone !z01_lwm !z01_z06_pct !clear_pct !last_known_status_dod_batch
+DOD_BATCH_EXCHANGE_ALERT, cat !html_footer
+DOD_BATCH_EXCHANGE_ALERT, echo EMAIL_RESULT_ABOVE:
+DOD_BATCH_EXCHANGE_ALERT, echo lookback is !lookback : timezone is !timezone
+DOD_BATCH_EXCHANGE_ALERT, echo Z01 LWM is !z01_lwm : batch pct is !z01_z06_pct : clearing pct is !clear_pct : last known status is !last_known_status_dod_batch
+
+
+#####################################################################
+# duplication alert
+#####################################################################
+!Duplication = echo ./jobs/alerts/duplication_alert
+
+!dup_pct ==> DUPLICATION_ALERT =  echo 60
+!clearing_pct  ==> DUPLICATION_ALERT =  echo 40
+!z04_min  ==> DUPLICATION_ALERT =  echo 100
+#!last_known_status_dup ==> DUPLICATION_ALERT = !last_known_jle_status DUPLICATION_ALERT
+!last_known_status_dup ==> DUPLICATION_ALERT = !last_known_starter ("DUPLICATION_ALERT", "")
+
+DUPLICATION_ALERT, echo EMAIL_RESULT_BELOW:
+DUPLICATION_ALERT, cat !html_header
+DUPLICATION_ALERT, !script_sql_invoker !Duplication !lookback !timezone !dup_pct !clearing_pct !z04_min !last_known_status_dup
+DUPLICATION_ALERT, cat !html_footer
+DUPLICATION_ALERT, echo EMAIL_RESULT_ABOVE:
+
+###########################################################
+# HDR alert
+###########################################################
+
+!HDR_ALERT ==> HDR_ALERT = echo ./jobs/alerts/hdr_alert_shamu
+#!last_known_status_hdr ==> HDR_ALERT = !last_known_jle_status HDR_ALERT
+!last_known_status_hdr ==> HDR_ALERT = !last_known_starter ("HDR_ALERT", "")
+
+#this is a number from 1 to 100 that is the minimum acceptable percentage of records audited to messages written
+!hdr_writes_pct ==> HDR_ALERT = echo 20
+!hdr_writes_clearing_pct ==> HDR_ALERT = echo 30
+!lwm_hdr ==> HDR_ALERT = echo 10
+!time_range_with_hdr_writes_count ==> HDR_ALERT = !path_jruby ./jobs/ruby/introscope/hdr_writes_alert.rb !introscope_metric_data_service_endpoint !introscope_metric_data_service_user !introscope_metric_data_service_password !lookback
+
+HDR_ALERT, echo EMAIL_RESULT_BELOW:
+HDR_ALERT, cat !html_header
+HDR_ALERT, !script_sql_invoker !HDR_ALERT !timezone HDR_ALERT !lookback !last_known_status_hdr !hdr_writes_pct !hdr_writes_clearing_pct !lwm_hdr !time_range_with_hdr_writes_count
+HDR_ALERT, cat !html_footer
+HDR_ALERT, echo EMAIL_RESULT_ABOVE:
+
+###########################################################
+# MPI_ALERT
+###########################################################
+!MPI_ALERT = echo ./jobs/alerts/mpi_alert
+#!last_known_status_mpi ==> MPI_ALERT = !last_known_jle_status MPI_ALERT
+!last_known_status_mpi ==> MPI_ALERT = !last_known_starter ("MPI_ALERT", "")
+
+#min_z01_clearing_cnt_mpi should be less than or equal to min_z01_cnt_mpi
+!min_z01_cnt_mpi ==> MPI_ALERT = echo 15
+!min_z01_clearing_cnt_mpi ==> MPI_ALERT = echo 5
+
+MPI_ALERT, echo EMAIL_RESULT_BELOW:
+MPI_ALERT, cat !html_header
+MPI_ALERT, !script_sql_invoker !MPI_ALERT !timezone MPI_ALERT !lookback30 !last_known_status_mpi !min_z01_cnt_mpi !min_z01_clearing_cnt_mpi
+MPI_ALERT, cat !html_footer
+MPI_ALERT, echo EMAIL_RESULT_ABOVE:
+
+
+###########################################################
+# Message Traffic Checks
+###########################################################
+!MessageTrafficCheck = echo ./jobs/alerts/MessageTrafficCheck/message_traffic_check
+!Z03_Z04_FREQ_TRAFFIC_CHECK = echo ./jobs/alerts/MessageTrafficCheck/Z03_Z04_FREQ_TRAFFIC_CHECK
+
+NO_DOD_TRAFFIC, !script_sql_invoker !MessageTrafficCheck !timezone NO_DOD_TRAFFIC !lookback
+NO_Z04_MESSAGES_RECEIVED, !script_sql_invoker !MessageTrafficCheck !timezone NO_Z04_MESSAGES_RECEIVED !lookback
+#NO_Z03_VISTA_MESSAGES_SENT_TO_DOD, !script_sql_invoker !MessageTrafficCheck !timezone NO_Z03_VISTA_MESSAGES_SENT_TO_DOD !lookback
+Z03_Z04_FREQ_TRAFFIC_CHECK, !script_sql_invoker !Z03_Z04_FREQ_TRAFFIC_CHECK !timezone Z03_Z04_FREQ_TRAFFIC_CHECK !lookback10
+
+###########################################################
+# TRAFFIC_FLOW_ALERT (dod_to_va and va_to_dod)
+###########################################################
+!TRAFFIC_FLOW_ALERT_SQL ==> TRAFFIC_FLOW_ALERT_DOD,TRAFFIC_FLOW_ALERT_VA = echo ./jobs/alerts/traffic_flow_alert
+#!last_known_status_traffic_flow_va ==> TRAFFIC_FLOW_ALERT_VA = !last_known_jle_status TRAFFIC_FLOW_ALERT_VA run_data
+!last_known_status_traffic_flow_va ==> TRAFFIC_FLOW_ALERT_VA = !last_known_starter ("TRAFFIC_FLOW_ALERT_VA", "run_data")
+!last_known_status_traffic_flow_dod ==> TRAFFIC_FLOW_ALERT_DOD = !last_known_starter ("TRAFFIC_FLOW_ALERT_DOD", "run_data")
+
+#the traffic flow alert looks for dod_to_va and if the argument is NOT this value then the va_to_dod SQL is executed
+!dod_to_va ==> TRAFFIC_FLOW_ALERT_DOD = echo dod_to_va
+!va_to_dod ==> TRAFFIC_FLOW_ALERT_VA = echo va_to_dod
+
+#If we are below the low watermark we go red.  The ratio above is only checked when we are above the low watermark.
+#The DoD z03 low water mark should be greater than zero in order to maintain a 'no traffic alert'.
+!z01_lwm_va ==> TRAFFIC_FLOW_ALERT_VA = echo 0
+!z01_lwm_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 0
+!z03_lwm_va ==> TRAFFIC_FLOW_ALERT_VA = echo 1
+!z03_lwm_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 1
+!z05_lwm_va ==> TRAFFIC_FLOW_ALERT_VA = echo 0
+!z05_lwm_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 0
+!z06_lwm_va ==> TRAFFIC_FLOW_ALERT_VA = echo 0
+!z06_lwm_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 0
+
+#This minimum further restricts when the ratio is checked.  We will not check ratios unless our flow is above this minimum.
+#These numbers MUST be greater than zero and should be as large as possible to avoid false alerts due to pct response violations
+!z01_min_va ==> TRAFFIC_FLOW_ALERT_VA = echo 32
+!z01_min_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 32
+!z03_min_va ==> TRAFFIC_FLOW_ALERT_VA = echo 40
+!z03_min_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 40
+!z05_min_va ==> TRAFFIC_FLOW_ALERT_VA = echo 40
+!z05_min_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 40
+!z06_min_va ==> TRAFFIC_FLOW_ALERT_VA = echo 40
+!z06_min_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 40
+
+#These tell the alerts when to ignore the minimums for ratio checks(immediately above)
+#upon clearing, i.e. if set to true, in order for the alert to go red the minimum is observed when clearing the minimum is ignored.
+#The only valid values are the strings '0' (false) and '1' (true)
+!z01_ignore_min_on_clear_va ==> TRAFFIC_FLOW_ALERT_VA = echo 1
+!z01_ignore_min_on_clear_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 1
+!z03_ignore_min_on_clear_va ==> TRAFFIC_FLOW_ALERT_VA = echo 0
+!z03_ignore_min_on_clear_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 0
+!z05_ignore_min_on_clear_va ==> TRAFFIC_FLOW_ALERT_VA = echo 1
+!z05_ignore_min_on_clear_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 1
+!z06_ignore_min_on_clear_va ==> TRAFFIC_FLOW_ALERT_VA = echo 1
+!z06_ignore_min_on_clear_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 1
+
+#Below are the ratio requirements.  For every request / response pair
+#if the response ratio falls below what is defined the alert goes red.
+#the number is inclusive, i.e. 20% or less
+!z01_z02_pct_va ==> TRAFFIC_FLOW_ALERT_VA = echo 20
+!z01_z02_pct_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 20
+!z03_z04_pct_va ==> TRAFFIC_FLOW_ALERT_VA = echo 10
+!z03_z04_pct_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 20
+!z05_z06_pct_va ==> TRAFFIC_FLOW_ALERT_VA = echo 20
+!z05_z06_pct_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 20
+!z06_z07_pct_va ==> TRAFFIC_FLOW_ALERT_VA = echo 20
+!z06_z07_pct_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 20
+
+#Below are the ratio requirements for clearing from red to green. Inclusive.
+!z01_z02_clear_pct_va ==> TRAFFIC_FLOW_ALERT_VA = echo 40
+!z01_z02_clear_pct_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 40
+!z03_z04_clear_pct_va ==> TRAFFIC_FLOW_ALERT_VA = echo 20
+!z03_z04_clear_pct_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 40
+!z05_z06_clear_pct_va ==> TRAFFIC_FLOW_ALERT_VA = echo 40
+!z05_z06_clear_pct_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 40
+!z06_z07_clear_pct_va ==> TRAFFIC_FLOW_ALERT_VA = echo 40
+!z06_z07_clear_pct_dod ==> TRAFFIC_FLOW_ALERT_DOD = echo 40
+
+# DOD traffic flow alert configuration
+TRAFFIC_FLOW_ALERT_DOD, echo EMAIL_RESULT_BELOW:
+TRAFFIC_FLOW_ALERT_DOD, cat !html_header
+TRAFFIC_FLOW_ALERT_DOD, !script_sql_invoker !TRAFFIC_FLOW_ALERT_SQL !lookback !dod_to_va !timezone !z01_z02_pct_dod !z03_z04_pct_dod !z05_z06_pct_dod !z06_z07_pct_dod !z01_lwm_dod !z03_lwm_dod !z05_lwm_dod !z06_lwm_dod !z01_min_dod !z03_min_dod !z05_min_dod !z06_min_dod !z01_z02_clear_pct_dod !z03_z04_clear_pct_dod !z05_z06_clear_pct_dod !z06_z07_clear_pct_dod !last_known_status_traffic_flow_dod !z01_ignore_min_on_clear_dod !z03_ignore_min_on_clear_dod !z05_ignore_min_on_clear_dod !z06_ignore_min_on_clear_dod
+TRAFFIC_FLOW_ALERT_DOD, cat !html_footer
+TRAFFIC_FLOW_ALERT_DOD, echo EMAIL_RESULT_ABOVE:
+TRAFFIC_FLOW_ALERT_DOD, echo lookback is !lookback : direction is !dod_to_va : timezone is !timezone
+TRAFFIC_FLOW_ALERT_DOD, echo z01_z02_pct_dod is !z01_z02_pct_dod : z03_z04_pct_dod is !z03_z04_pct_dod : z05_z06_pct_dod is !z05_z06_pct_dod : z06_z07_pct_dod is !z06_z07_pct_dod : z01_lwm_dod is !z01_lwm_dod : z03_lwm_dod is !z03_lwm_dod : z05_lwm_dod is !z05_lwm_dod
+TRAFFIC_FLOW_ALERT_DOD, echo z06_lwm_dod is !z06_lwm_dod : z01_min_dod is !z01_min_dod : z03_min_dod is !z03_min_dod : z05_min_dod is !z05_min_dod : z06_min_dod is !z06_min_dod : z01_z02_clear_pct_dod is !z01_z02_clear_pct_dod : z03_z04_clear_pct_dod is !z03_z04_clear_pct_dod : z05_z06_clear_pct_dod is !z05_z06_clear_pct_dod : z06_z07_clear_pct_dod is !z06_z07_clear_pct_dod
+
+# VHA traffic flow alert configuration
+TRAFFIC_FLOW_ALERT_VA, echo EMAIL_RESULT_BELOW:
+TRAFFIC_FLOW_ALERT_VA, cat !html_header
+TRAFFIC_FLOW_ALERT_VA, !script_sql_invoker !TRAFFIC_FLOW_ALERT_SQL !lookback !va_to_dod !timezone !z01_z02_pct_va !z03_z04_pct_va !z05_z06_pct_va !z06_z07_pct_va !z01_lwm_va !z03_lwm_va !z05_lwm_va !z06_lwm_va !z01_min_va !z03_min_va !z05_min_va !z06_min_va !z01_z02_clear_pct_va !z03_z04_clear_pct_va !z05_z06_clear_pct_va !z06_z07_clear_pct_va !last_known_status_traffic_flow_va !z01_ignore_min_on_clear_va !z03_ignore_min_on_clear_va !z05_ignore_min_on_clear_va !z06_ignore_min_on_clear_va
+TRAFFIC_FLOW_ALERT_VA, cat !html_footer
+TRAFFIC_FLOW_ALERT_VA, echo EMAIL_RESULT_ABOVE:
+TRAFFIC_FLOW_ALERT_VA, echo lookback is !lookback : va_to_dod is !va_to_dod : timezone is !timezone
+TRAFFIC_FLOW_ALERT_VA, echo z01_z02_pct_va is !z01_z02_pct_va : z03_z04_pct_va is !z03_z04_pct_va : z05_z06_pct_va is !z05_z06_pct_va : z06_z07_pct_va is !z06_z07_pct_va : z01_lwm_va is !z01_lwm_va : z03_lwm_va is !z03_lwm_va : z05_lwm_va is !z05_lwm_va
+TRAFFIC_FLOW_ALERT_VA, echo z06_lwm_va is !z06_lwm_va : z01_min_va is !z01_min_va : z03_min_va is !z03_min_va : z05_min_va is !z05_min_va : z06_min_va is !z06_min_va : z01_z02_clear_pct_va is !z01_z02_clear_pct_va : z03_z04_clear_pct_va is !z03_z04_clear_pct_va : z05_z06_clear_pct_va is !z05_z06_clear_pct_va : z06_z07_clear_pct_va is !z06_z07_clear_pct_va
+
+###########################################################
+# Vista Alert
+###########################################################
+!VISTA_ALERT = echo ./jobs/alerts/vista_alert
+
+#either of these watermarks will be ignored if set to a negative number
+!low_water_mark_vista ==> VISTA_ALERT = echo 1
+#!last_known_status_vista ==> VISTA_ALERT = !last_known_jle_status VISTA_ALERT
+!last_known_status_vista ==> VISTA_ALERT = !last_known_starter ("VISTA_ALERT", "")
+!vista_clearing_cnt ==> VISTA_ALERT = echo 10
+
+#this is used in the VISTA alert to allow us to report on the last message written in case it is outside of the reporting period
+!last_write_lookback_minutes ==> VISTA_ALERT = echo 180
+
+VISTA_ALERT, echo EMAIL_RESULT_BELOW:
+VISTA_ALERT, cat !html_header
+VISTA_ALERT, !script_sql_invoker !VISTA_ALERT !timezone VISTA_ALERT !lookback !last_write_lookback_minutes !low_water_mark_vista !vista_clearing_cnt !last_known_status_vista
+VISTA_ALERT, cat !html_footer
+VISTA_ALERT, echo EMAIL_RESULT_ABOVE:
+
+###########################################################
+# A24_ACK MPI Alert
+###########################################################
+!a24_ack_mpi_sql = echo ./jobs/alerts/a24_ack_mpi_alert
+#!a24_ack_mpi_last_known_status ==> A24_ACK_MPI_ALERT = !last_known_jle_status A24_ACK_MPI_ALERT
+!a24_ack_mpi_last_known_status ==> A24_ACK_MPI_ALERT = !last_known_starter ("A24_ACK_MPI_ALERT", "")
+!a24_ack_mpi_lookback_min ==> A24_ACK_MPI_ALERT = echo 1440
+!a24_ack_mpi_handshake_min_pct ==> A24_ACK_MPI_ALERT = echo 10
+
+A24_ACK_MPI_ALERT, echo EMAIL_RESULT_BELOW:
+A24_ACK_MPI_ALERT, cat !html_header
+A24_ACK_MPI_ALERT, !script_sql_invoker !a24_ack_mpi_sql !timezone A24_ACK_MPI_ALERT !a24_ack_mpi_last_known_status !a24_ack_mpi_lookback_min !a24_ack_mpi_handshake_min_pct
+A24_ACK_MPI_ALERT, cat !html_footer
+A24_ACK_MPI_ALERT, echo EMAIL_RESULT_ABOVE:
+
+
+###########################################################
+# A24_ACK DOD Alert
+###########################################################
+!a24_ack_dod_sql = echo ./jobs/alerts/a24_ack_dod_alert
+#!a24_ack_dod_last_known_status ==> A24_ACK_DOD_ALERT = !last_known_jle_status A24_ACK_DOD_ALERT
+!a24_ack_dod_last_known_status ==> A24_ACK_DOD_ALERT = !last_known_starter ("A24_ACK_DOD_ALERT", "")
+!a24_ack_dod_lookback_min ==> A24_ACK_DOD_ALERT = echo 1440
+!a24_ack_dod_handshake_min_pct ==> A24_ACK_DOD_ALERT = echo 10
+
+A24_ACK_DOD_ALERT, echo EMAIL_RESULT_BELOW:
+A24_ACK_DOD_ALERT, cat !html_header
+A24_ACK_DOD_ALERT, !script_sql_invoker !a24_ack_dod_sql !timezone A24_ACK_DOD_ALERT !a24_ack_dod_last_known_status !a24_ack_dod_lookback_min !a24_ack_dod_handshake_min_pct
+A24_ACK_DOD_ALERT, cat !html_footer
+A24_ACK_DOD_ALERT, echo EMAIL_RESULT_ABOVE:
+
+###########################################################
+# Introscope EPAgent status check
+###########################################################
+!epagent_home ==> EPAGENT_CHECK = echo /u01/dev/Introscope/epagent823/
+
+EPAGENT_CHECK, echo EMAIL_RESULT_BELOW:
+EPAGENT_CHECK, echo SUBJECT: Introscope EPAgent check
+EPAGENT_CHECK, !path_jruby ./jobs/alerts/introscope/epagent_check.rb !epagent_home
+EPAGENT_CHECK, echo EMAIL_RESULT_ABOVE:
+
+
+###########################################################
+# message flow report configurations
+###########################################################
+!MessageFlowAnalysisReport ==> MESSAGE_FLOW_RPT_TODAY,MESSAGE_FLOW_RPT_DAILY,MESSAGE_FLOW_RPT_WEEKLY,MESSAGE_FLOW_RPT_MONTHLY = echo ./jobs/reports/MessageFlowAnalysis/MessageFlowAnalysisReport
+!HourlyMessageTraffic ==> MESSAGE_FLOW_RPT_TODAY,MESSAGE_FLOW_RPT_DAILY,HOURLY_BREAKDOWN_EMAIL = echo ./jobs/reports/MessageFlowAnalysis/HourlyMessageTraffic
+!MessageResponseAnalysisReport ==> MESSAGE_FLOW_RPT_TODAY,MESSAGE_FLOW_RPT_DAILY,MESSAGE_FLOW_RPT_WEEKLY = echo ./jobs/reports/MessageFlowAnalysis/MessageResponseAnalysisReport
+!MessageErrors906Report ==> MESSAGE_FLOW_RPT_TODAY,MESSAGE_FLOW_RPT_DAILY,MESSAGE_FLOW_RPT_WEEKLY = echo ./jobs/reports/MessageFlowAnalysis/MessageErrors906
+
+#this is a serviceable request (the others are scheduled)
+MESSAGE_FLOW_RPT_TODAY, echo EMAIL_RESULT_BELOW:
+MESSAGE_FLOW_RPT_TODAY, echo SUBJECT: Current Production Message Flow Analysis
+MESSAGE_FLOW_RPT_TODAY, cat !html_header
+MESSAGE_FLOW_RPT_TODAY, !script_sql_invoker !MessageFlowAnalysisReport !arg_today 0
+MESSAGE_FLOW_RPT_TODAY, !script_sql_invoker !HourlyMessageTraffic !arg_today 1 !tz_offset !timezone
+MESSAGE_FLOW_RPT_TODAY, !path_jruby ./jobs/ruby/introscope/hdr_writes_hourly_breakdown.rb !introscope_metric_data_service_endpoint !introscope_metric_data_service_user !introscope_metric_data_service_password !arg_today 1
+MESSAGE_FLOW_RPT_TODAY, !script_sql_invoker !MessageResponseAnalysisReport !arg_today 0
+MESSAGE_FLOW_RPT_TODAY, !script_sql_invoker !MessageErrors906Report !arg_today 0
+MESSAGE_FLOW_RPT_TODAY, cat !html_footer
+MESSAGE_FLOW_RPT_TODAY, echo EMAIL_RESULT_ABOVE:
+
+!daily_rpt_date_arg ==> MESSAGE_FLOW_RPT_DAILY = !script_date 0
+#ARG_DEFINITION|Message flow report run date|Enter in the date one day AFTER the date you would like the data retrieved for in yyyymmdd format|8|Please enter a valid date in the form yyyymmdd|^([2-9]\d{3}((0[1-9]|1[012])(0[1-9]|1\d|2[0-8])|(0[13456789]|1[012])(29|30)|(0[13578]|1[02])31)|(([2-9]\d)(0[48]|[2468][048]|[13579][26])|(([2468][048]|[3579][26])00))0229)$
+
+MESSAGE_FLOW_RPT_DAILY, echo EMAIL_RESULT_BELOW:
+MESSAGE_FLOW_RPT_DAILY, echo SUBJECT: Daily Production Message Flow Analysis
+MESSAGE_FLOW_RPT_DAILY, cat !html_header
+MESSAGE_FLOW_RPT_DAILY, !script_sql_invoker !MessageFlowAnalysisReport !daily_rpt_date_arg 1
+MESSAGE_FLOW_RPT_DAILY, !script_sql_invoker !HourlyMessageTraffic !daily_rpt_date_arg 1 !tz_offset !timezone
+MESSAGE_FLOW_RPT_DAILY, !path_jruby ./jobs/ruby/introscope/hdr_writes_hourly_breakdown.rb !introscope_metric_data_service_endpoint !introscope_metric_data_service_user !introscope_metric_data_service_password !daily_rpt_date_arg 1
+MESSAGE_FLOW_RPT_DAILY, !script_sql_invoker !MessageResponseAnalysisReport !daily_rpt_date_arg 1
+MESSAGE_FLOW_RPT_DAILY, !script_sql_invoker !MessageErrors906Report !daily_rpt_date_arg 1
+MESSAGE_FLOW_RPT_DAILY, cat !html_footer
+MESSAGE_FLOW_RPT_DAILY, echo EMAIL_RESULT_ABOVE:
+
+!weekly_rpt_date_arg ==> MESSAGE_FLOW_RPT_WEEKLY = echo !arg_today
+#ARG_DEFINITION|Message flow report end date|Enter in the date as the day after the end date in yyyymmdd format|8|Please enter a valid date in the form yyyymmdd|^([2-9]\d{3}((0[1-9]|1[012])(0[1-9]|1\d|2[0-8])|(0[13456789]|1[012])(29|30)|(0[13578]|1[02])31)|(([2-9]\d)(0[48]|[2468][048]|[13579][26])|(([2468][048]|[3579][26])00))0229)$
+!weekly_rpt_lookback_arg ==> MESSAGE_FLOW_RPT_WEEKLY = echo 7
+#ARG_DEFINITION|Message flow report lookback in days|Enter in number of days to look back|2|Please enter a valid number between 1 and 14|^[1-9]$|^1[0-4]$
+
+MESSAGE_FLOW_RPT_WEEKLY, echo EMAIL_RESULT_BELOW:
+MESSAGE_FLOW_RPT_WEEKLY, echo SUBJECT: Weekly ADC and CHDR Message Flow Analysis
+MESSAGE_FLOW_RPT_WEEKLY, cat !html_header
+MESSAGE_FLOW_RPT_WEEKLY, !script_sql_invoker !MessageFlowAnalysisReport !weekly_rpt_date_arg !weekly_rpt_lookback_arg
+MESSAGE_FLOW_RPT_WEEKLY, !script_sql_invoker !MessageResponseAnalysisReport !weekly_rpt_date_arg !weekly_rpt_lookback_arg
+MESSAGE_FLOW_RPT_WEEKLY, !script_sql_invoker !MessageErrors906Report !weekly_rpt_date_arg !weekly_rpt_lookback_arg
+MESSAGE_FLOW_RPT_WEEKLY, cat !html_footer
+MESSAGE_FLOW_RPT_WEEKLY, echo EMAIL_RESULT_ABOVE:
+
+MESSAGE_FLOW_RPT_MONTHLY, echo EMAIL_RESULT_BELOW:
+MESSAGE_FLOW_RPT_MONTHLY, echo SUBJECT: MONTHLY ADC and CHDR Message Flow Analysis
+MESSAGE_FLOW_RPT_MONTHLY, cat !html_header
+MESSAGE_FLOW_RPT_MONTHLY, !script_sql_invoker !MessageFlowAnalysisReport !arg_today -1
+MESSAGE_FLOW_RPT_MONTHLY, cat !html_footer
+MESSAGE_FLOW_RPT_MONTHLY, echo EMAIL_RESULT_ABOVE:
+
+###########################################################
+# Hourly Breakdown check email
+###########################################################
+HOURLY_BREAKDOWN_EMAIL, echo EMAIL_RESULT_BELOW:
+HOURLY_BREAKDOWN_EMAIL, echo SUBJECT: Hourly Message Traffic check
+HOURLY_BREAKDOWN_EMAIL, cat !html_header
+HOURLY_BREAKDOWN_EMAIL, !script_sql_invoker !HourlyMessageTraffic !arg_today 0 !tz_offset !timezone
+HOURLY_BREAKDOWN_EMAIL, !path_jruby ./jobs/ruby/introscope/hdr_writes_hourly_breakdown.rb !introscope_metric_data_service_endpoint !introscope_metric_data_service_user !introscope_metric_data_service_password !arg_today 1
+HOURLY_BREAKDOWN_EMAIL, cat !html_footer
+HOURLY_BREAKDOWN_EMAIL, echo EMAIL_RESULT_ABOVE:
+
+###########################################################
+# monthly ADC report
+###########################################################
+!path_monthly_adc_dir ==> MONTHLY_ADC = echo ./jobs/reports/monthlyADC
+!MONTHLY_ADC ==> MONTHLY_ADC = echo !path_monthly_adc_dir/monthlyADCStats
+!MONTHLY_ADC_COUNT ==> MONTHLY_ADC = echo !path_monthly_adc_dir/monthlyADCCount
+
+MONTHLY_ADC, rm !path_monthly_adc_dir/va-chdr-monthly-adc.txt
+MONTHLY_ADC, rm !path_monthly_adc_dir/va-chdr-monthly-adc.zip
+MONTHLY_ADC, !script_sql_invoker !MONTHLY_ADC
+MONTHLY_ADC, cd !path_monthly_adc_dir && jar cfM va-chdr-monthly-adc.zip va-chdr-monthly-adc.txt
+MONTHLY_ADC, echo EMAIL_RESULT_BELOW:
+MONTHLY_ADC, echo SUBJECT: VA CHDR Monthly ADC Report Run - !curdate
+MONTHLY_ADC, echo Result of sftp monthly zip file below
+MONTHLY_ADC, cd !path_monthly_adc_dir && java -jar ../../../lib/jars/jruby-complete-1.6.7.2.jar ../../ruby/helpers/sftp.rb 67.208.88.234 doduser @complete55 va-chdr-monthly-adc.zip  / 60 60
+MONTHLY_ADC, !script_sql_invoker !MONTHLY_ADC_COUNT
+MONTHLY_ADC, echo EMAIL_RESULT_ABOVE:
+
+###########################################################
+# VistA elapsed time report for north chicago
+###########################################################
+!VistaElapsedTimeReport = echo ./jobs/reports/vista_elapsed_time/vista_elapsed_time_report
+
+!vista_elapsed_time_date_arg ==> VISTA_ELAPSED_TIME_NORTH_CHICAGO, VISTA_ELAPSED_TIME_HEARTLAND_WEST, VISTA_ELAPSED_TIME_HUDSON_VALLEY = echo !arg_yesterday
+#ARG_DEFINITION|VistA Elapsed Time Date|Enter in the date to report on in yyyymmdd format|8|Please enter a valid date in the form yyyymmdd|^([2-9]\d{3}((0[1-9]|1[012])(0[1-9]|1\d|2[0-8])|(0[13456789]|1[012])(29|30)|(0[13578]|1[02])31)|(([2-9]\d)(0[48]|[2468][048]|[13579][26])|(([2468][048]|[3579][26])00))0229)$
+
+!site_arg ==> VISTA_ELAPSED_TIME_NORTH_CHICAGO = echo 556
+#ARG_DEFINITION|Site Code|Enter in the site code (556 North Chicago, 756 El Paso, or 508 Atlanta)|3|Please enter a valid site code (556, 756, or 508)|^556$|^756$|^508$
+
+VISTA_ELAPSED_TIME_NORTH_CHICAGO, echo EMAIL_RESULT_BELOW:
+VISTA_ELAPSED_TIME_NORTH_CHICAGO, echo SUBJECT: VistA Elapsed Time Daily Report -!site_arg
+VISTA_ELAPSED_TIME_NORTH_CHICAGO, cat !html_header
+VISTA_ELAPSED_TIME_NORTH_CHICAGO, !script_sql_invoker !VistaElapsedTimeReport !vista_elapsed_time_date_arg !site_arg 90 20
+VISTA_ELAPSED_TIME_NORTH_CHICAGO, cat !html_footer
+VISTA_ELAPSED_TIME_NORTH_CHICAGO, echo EMAIL_RESULT_ABOVE:
+
+###########################################################
+# VistA elapsed time report for 589 VA HEARTLAND-WEST
+###########################################################
+!site_arg ==> VISTA_ELAPSED_TIME_HEARTLAND_WEST = echo 589
+#ARG_DEFINITION|Site Code|Enter in the site code (556 North Chicago, 589 Heartland West, 620 Hudson Valley, 756 El Paso, or 508 Atlanta)|3|Please enter a valid site code (556, 589, 620, 756, or 508)|^556$|^756$|^508$|^589$|^620$
+
+VISTA_ELAPSED_TIME_HEARTLAND_WEST, echo EMAIL_RESULT_BELOW:
+VISTA_ELAPSED_TIME_HEARTLAND_WEST, echo SUBJECT: VistA Elapsed Time Daily Report -!site_arg
+VISTA_ELAPSED_TIME_HEARTLAND_WEST, cat !html_header
+VISTA_ELAPSED_TIME_HEARTLAND_WEST, !script_sql_invoker !VistaElapsedTimeReport !vista_elapsed_time_date_arg !site_arg 90 20
+VISTA_ELAPSED_TIME_HEARTLAND_WEST, cat !html_footer
+VISTA_ELAPSED_TIME_HEARTLAND_WEST, echo EMAIL_RESULT_ABOVE:
+
+###########################################################
+# VistA elapsed time report for 620 VA HUDSON VALLEY HEALTH
+###########################################################
+!site_arg ==> VISTA_ELAPSED_TIME_HUDSON_VALLEY = echo 620
+#ARG_DEFINITION|Site Code|Enter in the site code (556 North Chicago, 589 Heartland West, 620 Hudson Valley, 756 El Paso, or 508 Atlanta)|3|Please enter a valid site code (556, 589, 620, 756, or 508)|^556$|^756$|^508$|^589$|^620$
+
+VISTA_ELAPSED_TIME_HUDSON_VALLEY, echo EMAIL_RESULT_BELOW:
+VISTA_ELAPSED_TIME_HUDSON_VALLEY, echo SUBJECT: VistA Elapsed Time Daily Report -!site_arg
+VISTA_ELAPSED_TIME_HUDSON_VALLEY, cat !html_header
+VISTA_ELAPSED_TIME_HUDSON_VALLEY, !script_sql_invoker !VistaElapsedTimeReport !vista_elapsed_time_date_arg !site_arg 90 20
+VISTA_ELAPSED_TIME_HUDSON_VALLEY, cat !html_footer
+VISTA_ELAPSED_TIME_HUDSON_VALLEY, echo EMAIL_RESULT_ABOVE:
+
+###########################################################
+# Z03_SITE_ANALYSIS - this job counts Z03 messages by VA site
+###########################################################
+!Z03_SITE_ANALYSIS_RUN_DATE7 ==> Z03_SITE_ANALYSIS = !script_date 7
+!Z03_SITE_ANALYSIS_RUN_DATE6 ==> Z03_SITE_ANALYSIS = !script_date 6
+!Z03_SITE_ANALYSIS_RUN_DATE5 ==> Z03_SITE_ANALYSIS = !script_date 5
+!Z03_SITE_ANALYSIS_RUN_DATE4 ==> Z03_SITE_ANALYSIS = !script_date 4
+!Z03_SITE_ANALYSIS_RUN_DATE3 ==> Z03_SITE_ANALYSIS = !script_date 3
+!Z03_SITE_ANALYSIS_RUN_DATE2 ==> Z03_SITE_ANALYSIS = !script_date 2
+!Z03_SITE_ANALYSIS_RUN_DATE1 ==> Z03_SITE_ANALYSIS = !script_date 1
+
+#in case we ever want to run for a specific week
+#!Z03_SITE_ANALYSIS_RUN_DATE7 ==> Z03_SITE_ANALYSIS = echo 20110815
+#!Z03_SITE_ANALYSIS_RUN_DATE6 ==> Z03_SITE_ANALYSIS = echo 20110816
+#!Z03_SITE_ANALYSIS_RUN_DATE5 ==> Z03_SITE_ANALYSIS = echo 20110817
+#!Z03_SITE_ANALYSIS_RUN_DATE4 ==> Z03_SITE_ANALYSIS = echo 20110818
+#!Z03_SITE_ANALYSIS_RUN_DATE3 ==> Z03_SITE_ANALYSIS = echo 20110819
+#!Z03_SITE_ANALYSIS_RUN_DATE2 ==> Z03_SITE_ANALYSIS = echo 20110820
+#!Z03_SITE_ANALYSIS_RUN_DATE1 ==> Z03_SITE_ANALYSIS = echo 20110821
+
+!Z03_SITE_ANALYSIS_BASE      ==> Z03_SITE_ANALYSIS = echo ./jobs/reports/z03_site_breakdown
+!Z03_SITE_ANALYSIS_TEMPLATE  ==> Z03_SITE_ANALYSIS = echo !Z03_SITE_ANALYSIS_BASE/z03_site_breakdown_template.html
+!Z03_SITE_ANALYSIS_RESULTS   ==> Z03_SITE_ANALYSIS = echo !Z03_SITE_ANALYSIS_BASE/z03_site_breakdown_results
+!Z03_SITE_ANALYSIS_SQL       ==> Z03_SITE_ANALYSIS = echo !Z03_SITE_ANALYSIS_BASE/z03_site_breakdown.sql
+
+Z03_SITE_ANALYSIS, !script_sql_invoker !Z03_SITE_ANALYSIS_SQL !Z03_SITE_ANALYSIS_RUN_DATE7 > !Z03_SITE_ANALYSIS_RESULTS/SITE7.txt
+Z03_SITE_ANALYSIS, !script_sql_invoker !Z03_SITE_ANALYSIS_SQL !Z03_SITE_ANALYSIS_RUN_DATE6 > !Z03_SITE_ANALYSIS_RESULTS/SITE6.txt
+Z03_SITE_ANALYSIS, !script_sql_invoker !Z03_SITE_ANALYSIS_SQL !Z03_SITE_ANALYSIS_RUN_DATE5 > !Z03_SITE_ANALYSIS_RESULTS/SITE5.txt
+Z03_SITE_ANALYSIS, !script_sql_invoker !Z03_SITE_ANALYSIS_SQL !Z03_SITE_ANALYSIS_RUN_DATE4 > !Z03_SITE_ANALYSIS_RESULTS/SITE4.txt
+Z03_SITE_ANALYSIS, !script_sql_invoker !Z03_SITE_ANALYSIS_SQL !Z03_SITE_ANALYSIS_RUN_DATE3 > !Z03_SITE_ANALYSIS_RESULTS/SITE3.txt
+Z03_SITE_ANALYSIS, !script_sql_invoker !Z03_SITE_ANALYSIS_SQL !Z03_SITE_ANALYSIS_RUN_DATE2 > !Z03_SITE_ANALYSIS_RESULTS/SITE2.txt
+Z03_SITE_ANALYSIS, !script_sql_invoker !Z03_SITE_ANALYSIS_SQL !Z03_SITE_ANALYSIS_RUN_DATE1 > !Z03_SITE_ANALYSIS_RESULTS/SITE1.txt
+
+Z03_SITE_ANALYSIS, echo EMAIL_RESULT_BELOW:
+Z03_SITE_ANALYSIS, echo SUBJECT: Z03_SITE_ANALYSIS for !Z03_SITE_ANALYSIS_RUN_DATE7 thru !Z03_SITE_ANALYSIS_RUN_DATE1
+Z03_SITE_ANALYSIS, !path_jruby !Z03_SITE_ANALYSIS_BASE/z03_site_breakdown.rb !Z03_SITE_ANALYSIS_RESULTS !Z03_SITE_ANALYSIS_TEMPLATE
+Z03_SITE_ANALYSIS, echo EMAIL_RESULT_ABOVE:
+
+
+######################################################################################################################
+# CHARTING JOBS
+######################################################################################################################
+
+###########################################################
+# ADC Analyzer - these graphs provide a running total of ADC patients
+# along with statistics for when we will reach certain milestones
+###########################################################
+!ADC_ANALYZER_SQL ==> ADC_ANALYZER_CHARTS = echo ./jobs/reports/adc_analyzer/adc_analyzer
+!ADC_ANALYZER_DATA_FILE ==> ADC_ANALYZER_CHARTS = echo ./jobs/reports/adc_analyzer/adc_analyzer_results.txt
+!ADC_ANALYZER_DAYS_AND_LABELS ==> ADC_ANALYZER_CHARTS = echo 30:10,60:14,90:21
+!ADC_ANALYZER_MILESTONES ==> ADC_ANALYZER_CHARTS = echo 1500000,2000000,2500000
+!ADC_ANALYZER_PREDICTION_PERIOD ==> ADC_ANALYZER_CHARTS = echo 30
+!ADC_ANALYZER_IMG_SIZE ==> ADC_ANALYZER_CHARTS = echo 640x480
+!ADC_ANALYZER_IMGS ==> ADC_ANALYZER_CHARTS = echo ./public/adc_analyzer
+!ADC_ANALYZER_URL ==> ADC_ANALYZER_CHARTS = echo !host_web_server/adc_analyzer
+!ADC_ANALYZER_TEMPLATE ==> ADC_ANALYZER_CHARTS = echo ./jobs/reports/adc_analyzer/adc_analyzer_template.html
+
+ADC_ANALYZER_CHARTS, !script_sql_invoker !ADC_ANALYZER_SQL > !ADC_ANALYZER_DATA_FILE
+ADC_ANALYZER_CHARTS, cd ./jobs/reports/adc_analyzer && jar cfM adc_analyzer.zip adc_analyzer_results.txt
+ADC_ANALYZER_CHARTS, echo EMAIL_RESULT_BELOW:
+ADC_ANALYZER_CHARTS, echo SUBJECT: ADC Analyzer Charts
+ADC_ANALYZER_CHARTS, !path_jruby ./jobs/reports/adc_analyzer/adc_analyzer.rb  !ADC_ANALYZER_DATA_FILE !ADC_ANALYZER_DAYS_AND_LABELS !ADC_ANALYZER_MILESTONES !ADC_ANALYZER_PREDICTION_PERIOD !ADC_ANALYZER_IMG_SIZE !ADC_ANALYZER_IMGS !ADC_ANALYZER_URL !ADC_ANALYZER_TEMPLATE 2>&1
+ADC_ANALYZER_CHARTS, echo EMAIL_RESULT_ABOVE:
+
+###########################################################
+# Message breakdown graphing data
+###########################################################
+!MESSAGE_BREAKDOWN ==> MESSAGE_BREAKDOWN_CHARTS = echo ./jobs/reports/message_outage_charts/message_breakdown
+!MESSAGE_CHARTS_PUBLIC ==> MESSAGE_BREAKDOWN_CHARTS = echo ./public/
+!MESSAGE_CHARTS_DATA_FILE ==> MESSAGE_BREAKDOWN_CHARTS = echo ./jobs/reports/message_outage_charts/graph_message_breakdown_results.txt
+!MESSAGE_CHARTS_MIN_OUTAGE ==> MESSAGE_BREAKDOWN_CHARTS = echo 15
+!MESSAGE_CHARTS_URL ==> MESSAGE_BREAKDOWN_CHARTS = echo !host_web_server/message_traffic_charts/CURRENT_DATE/Message_Traffic_Graphs.html
+!MESSAGE_CHARTS_HTML ==> MESSAGE_BREAKDOWN_CHARTS = echo ./jobs/reports/message_outage_charts/Message_Traffic_Graphs.html
+
+!msg_breakdown_date_arg ==> MESSAGE_BREAKDOWN_CHARTS = !script_date 0
+#ARG_DEFINITION|Message Breakdown Chart Date|Enter in the date you would like the charts run for in yyyymmdd format|8|Please enter a valid date in the form yyyymmdd|^([2-9]\d{3}((0[1-9]|1[012])(0[1-9]|1\d|2[0-8])|(0[13456789]|1[012])(29|30)|(0[13578]|1[02])31)|(([2-9]\d)(0[48]|[2468][048]|[13579][26])|(([2468][048]|[3579][26])00))0229)$
+
+MESSAGE_BREAKDOWN_CHARTS, !script_sql_invoker !MESSAGE_BREAKDOWN !msg_breakdown_date_arg !tz_offset > !MESSAGE_CHARTS_DATA_FILE
+MESSAGE_BREAKDOWN_CHARTS, echo EMAIL_RESULT_BELOW:
+MESSAGE_BREAKDOWN_CHARTS, echo SUBJECT: Production Message Traffic Charts
+MESSAGE_BREAKDOWN_CHARTS, !path_jruby ./jobs/reports/message_outage_charts/message_graphs.rb !MESSAGE_CHARTS_DATA_FILE !MESSAGE_CHARTS_PUBLIC !MESSAGE_CHARTS_MIN_OUTAGE !MESSAGE_CHARTS_URL !MESSAGE_CHARTS_HTML
+MESSAGE_BREAKDOWN_CHARTS, echo EMAIL_RESULT_ABOVE:
+MESSAGE_BREAKDOWN_CHARTS, rm !MESSAGE_CHARTS_DATA_FILE
+
+###########################################################
+# ADC Overlay - these graphs provide an ADC total attempts, activations and
+# a success percentage overlay
+###########################################################
+!ADC_OVERLAY_BASE ==> ADC_OVERLAY_CHARTS = echo ./jobs/reports/adc_overlay
+!ADC_OVERLAY_SQL ==> ADC_OVERLAY_CHARTS = echo !ADC_OVERLAY_BASE/adc_overlay
+!ADC_OVERLAY_DATA_FILE ==> ADC_OVERLAY_CHARTS = echo !ADC_OVERLAY_BASE/adc_overlay_data.txt
+!ADC_OVERLAY_IMG_NAME07 ==> ADC_OVERLAY_CHARTS = echo a_adc_overlay07.jpg
+!ADC_OVERLAY_IMG_NAME30 ==> ADC_OVERLAY_CHARTS = echo b_adc_overlay30.jpg
+!ADC_OVERLAY_IMG_WIDTH ==> ADC_OVERLAY_CHARTS = echo 1200
+!ADC_OVERLAY_IMG_HEIGHT ==> ADC_OVERLAY_CHARTS = echo 500
+!ADC_OVERLAY_CHART_TITLE ==> ADC_OVERLAY_CHARTS = echo ADC Activation Success Rates
+!ADC_OVERLAY_BAR1_TITLE ==> ADC_OVERLAY_CHARTS = echo DoD Activation Attempts
+!ADC_OVERLAY_BAR2_TITLE ==> ADC_OVERLAY_CHARTS = echo ADC Activations
+!ADC_OVERLAY_LINE_TITLE ==> ADC_OVERLAY_CHARTS = echo ADC Activation Success Pct
+!ADC_OVERLAY_XAXIS_TITLE ==> ADC_OVERLAY_CHARTS = echo Date
+!ADC_OVERLAY_YAXIS_RIGHT_TITLE ==> ADC_OVERLAY_CHARTS = echo Percent Activated
+!ADC_OVERLAY_YAXIS_LEFT_TITLE ==> ADC_OVERLAY_CHARTS = echo Activations
+!ADC_OVERLAY_IMGS ==> ADC_OVERLAY_CHARTS = echo ./public/adc_overlay_charts
+!ADC_OVERLAY_IMG_PATH ==> ADC_OVERLAY_CHARTS = echo !ADC_OVERLAY_IMGS/!arg_today/
+!ADC_OVERLAY_URL ==> ADC_OVERLAY_CHARTS = echo !host_web_server/adc_overlay_charts/!arg_today
+!ADC_OVERLAY_TEMPLATE ==> ADC_OVERLAY_CHARTS = echo !ADC_OVERLAY_BASE/adc_overlay.html.template
+!lookback31_days ==> ADC_OVERLAY_CHARTS = echo 31
+!overlay_jar ==> ADC_OVERLAY_CHARTS = echo java -Djava.awt.headless=true -jar !ADC_OVERLAY_BASE/adc_overlay.jar
+!which_echo  ==> ADC_OVERLAY_CHARTS = which echo
+
+ADC_OVERLAY_CHARTS, !script_sql_invoker !ADC_OVERLAY_SQL !lookback31_days > !ADC_OVERLAY_DATA_FILE
+ADC_OVERLAY_CHARTS, !overlay_jar !ADC_OVERLAY_DATA_FILE !ADC_OVERLAY_IMG_NAME07 !ADC_OVERLAY_IMG_WIDTH !ADC_OVERLAY_IMG_HEIGHT "!ADC_OVERLAY_CHART_TITLE" "!ADC_OVERLAY_BAR1_TITLE" "!ADC_OVERLAY_BAR2_TITLE" "!ADC_OVERLAY_LINE_TITLE" "!ADC_OVERLAY_XAXIS_TITLE" "!ADC_OVERLAY_YAXIS_LEFT_TITLE" "!ADC_OVERLAY_YAXIS_RIGHT_TITLE" !ADC_OVERLAY_IMGS 7
+ADC_OVERLAY_CHARTS, !overlay_jar !ADC_OVERLAY_DATA_FILE !ADC_OVERLAY_IMG_NAME30 !ADC_OVERLAY_IMG_WIDTH !ADC_OVERLAY_IMG_HEIGHT "!ADC_OVERLAY_CHART_TITLE" "!ADC_OVERLAY_BAR1_TITLE" "!ADC_OVERLAY_BAR2_TITLE" "!ADC_OVERLAY_LINE_TITLE" "!ADC_OVERLAY_XAXIS_TITLE" "!ADC_OVERLAY_YAXIS_LEFT_TITLE" "!ADC_OVERLAY_YAXIS_RIGHT_TITLE" !ADC_OVERLAY_IMGS 30
+ADC_OVERLAY_CHARTS, echo -n EMAIL_RESULT_BELOW:
+ADC_OVERLAY_CHARTS, echo SUBJECT: ADC Activation Overlay Charts
+ADC_OVERLAY_CHARTS, !path_jruby !ADC_OVERLAY_BASE/adc_overlay_emailer.rb !ADC_OVERLAY_TEMPLATE !ADC_OVERLAY_IMG_PATH !ADC_OVERLAY_URL !ADC_OVERLAY_IMG_WIDTH
+ADC_OVERLAY_CHARTS, echo -n EMAIL_RESULT_ABOVE:
+
+
+###########################################################
+# Historical Z-message charting - these graphs store a days' worth of Z-messages
+# in a dated directory off of the public drive for charting purposes
+###########################################################
+!HIST_CHARTING_BASE ==> HIST_CHARTING = echo ./jobs/reports/historical_charts
+!HIST_CHARTING_SQL ==> HIST_CHARTING = echo !HIST_CHARTING_BASE/historical_charting
+!HIST_CHARTING_DATA_FILE ==> HIST_CHARTING = echo !HIST_CHARTING_BASE/historical_chart_results.txt
+!HIST_CHARTING_DIR ==> HIST_CHARTING = echo ./public/historical_charts/data
+!HIST_CHARTING_ZIP ==> HIST_CHARTING = echo hc_data.zip
+!HIST_CHARTING_TXT ==> HIST_CHARTING = echo hc_data.txt
+
+!hist_chart_date_arg ==> HIST_CHARTING = !script_date 1
+#ARG_DEFINITION|Historical Charting Run Date|Enter in the date you would like the data retrieved for in yyyymmdd format|8|Please enter a valid date in the form yyyymmdd|^([2-9]\d{3}((0[1-9]|1[012])(0[1-9]|1\d|2[0-8])|(0[13456789]|1[012])(29|30)|(0[13578]|1[02])31)|(([2-9]\d)(0[48]|[2468][048]|[13579][26])|(([2468][048]|[3579][26])00))0229)$
+
+HIST_CHARTING, !script_sql_invoker !HIST_CHARTING_SQL !hist_chart_date_arg > !HIST_CHARTING_DATA_FILE
+HIST_CHARTING, !path_jruby !HIST_CHARTING_BASE/historical_charting.rb !HIST_CHARTING_DATA_FILE !HIST_CHARTING_BASE/!HIST_CHARTING_TXT
+HIST_CHARTING, cd !HIST_CHARTING_BASE && jar cfM !HIST_CHARTING_ZIP !HIST_CHARTING_TXT
+HIST_CHARTING, mkdir -p !HIST_CHARTING_DIR/!hist_chart_date_arg
+HIST_CHARTING, mv !HIST_CHARTING_BASE/!HIST_CHARTING_ZIP !HIST_CHARTING_DIR/!hist_chart_date_arg
+HIST_CHARTING, echo built the historical charting data for !hist_chart_date_arg
+HIST_CHARTING, rm !HIST_CHARTING_DATA_FILE !HIST_CHARTING_BASE/!HIST_CHARTING_TXT
+
+
+#SLEEPY, java -jar .\lib\jars\jruby-complete-1.6.7.2.jar c:\temp\sleep.rb
+
+#!date_today ==> EXAMPLE_REPORT_PRES, EXAMPLE_REPORT_ALGY = !script_date 0
+#EXAMPLE_REPORT_PRES, RUBY_EVAL_FILE ./jobs/examples/ruby/ExampleReport.rb PRES !date_today
+#EXAMPLE_REPORT_ALGY,  RUBY_EVAL_FILE ./jobs/examples/ruby/ExampleReport.rb ALGY !date_today
+
+#!date_arg ==>EXAMPLE_REPORT_AD_HOC = !script_date 0
+#ARG_DEFINITION|The report start date|Enter in the date in yyyymmdd format|8|Please enter a valid date in the form yyyymmdd|^([2-9]\d{3}((0[1-9]|1[012])(0[1-9]|1\d|2[0-8])|(0[13456789]|1[012])(29|30)|(0[13578]|1[02])31)|(([2-9]\d)(0[48]|[2468][048]|[13579][26])|(([2468][048]|[3579][26])00))0229)$
+
+#!event_type_arg ==>EXAMPLE_REPORT_AD_HOC = echo ALGY
+#ARG_DEFINITION|Event Type|Enter in either PRES or ALGY (case matters!)|4|Seriously?  Please follow the instructions.  PRES or ALGY only!|^PRES$|^ALGY$
+#EXAMPLE_REPORT_AD_HOC, RUBY_EVAL_FILE ./jobs/examples/ruby/ExampleReport.rb !event_type_arg !date_arg
+
+#no spaces in the classpath!
+#!example_report_classpath ==> EXAMPLE_REPORT_JAVA = echo ./jobs/examples/Java/example_report.jar
+#!example_report_classpath ==> EXAMPLE_REPORT_JAVA = echo ./jobs/examples/Java/classes
+#!example_report_classpath ==> EXAMPLE_REPORT_JAVA = echo !example_report_classpath,./jobs/examples/Java/blabby.jar,./jobs/examples/Java/chatty.jar
+#EXAMPLE_REPORT_JAVA, RUBY_EVAL_FILE ./jobs/examples/java/java_runner_internal.rb !example_report_classpath gov.va.shamu.external.ExampleReport ALGY 20121017
+
+
+#!java_runner = echo RUBY_EVAL_FILE ./jobs/examples/java/java_runner_internal.rb
+#!ruby_runner = echo RUBY_EVAL_FILE ./jobs/examples/ruby/ruby_runner_internal.rb
+#no spaces in the classpath!
+#!example_report_classpath ==> EXAMPLE_REPORT_XML_DATABASE_JAVA = echo ./jobs/examples/Java/xml_DBS_example/example_xml_dbs_report.jar
+#!example_report_classpath ==> EXAMPLE_REPORT_XML_DATABASE_JAVA = echo !example_report_classpath,./jobs/examples/Java/xml_DBS_example/
+#EXAMPLE_REPORT_XML_DATABASE_JAVA, cat !html_header
+#EXAMPLE_REPORT_XML_DATABASE_JAVA, !java_runner !example_report_classpath gov.va.shamu.external.ExampleReport "9/19/2010 12:00:01 AM" "12/20/2012 12:00:00 AM"
+#EXAMPLE_REPORT_XML_DATABASE_JAVA, cat !html_footer
+
+
+#EXAMPLE_REPORT_XML_DATABASE_RUBY, cat !html_header
+#EXAMPLE_REPORT_XML_DATABASE_RUBY, !ruby_runner ./jobs/examples/ruby/ExampleReport.rb "9/19/2010 12:00:01 AM" "12/20/2012 12:00:00 AM"
+#EXAMPLE_REPORT_XML_DATABASE_RUBY, cat !html_footer
+
+#EXAMPLE_REPORT_XML_DATABASE_PLSQL, cat !html_header
+#EXAMPLE_REPORT_XML_DATABASE_PLSQL, !script_sql_invoker ./jobs/examples/plsql/ExampleReport.sql 20100919 20121220
+#EXAMPLE_REPORT_XML_DATABASE_PLSQL, cat !html_footer
+
+####################################################################################################################
+# MESSAGE REPLAY - start
+####################################################################################################################
+!message_replay_beans_path ==> REPLAY_VA_TO_DOD_UPDATES, REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, REPLAY_HDR_UPDATES = echo ./jobs/tasks/message_replay/SpringMessageReplayBeans.xml
+#!message_replay_beans_path ==> REPLAY_VA_TO_DOD_UPDATES, REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, REPLAY_HDR_UPDATES = echo C:/Perforce/vhaislprf2_1666/vhaiswshuppc/chdr/current/Development/Utilities/ProductionSupportTools/SHAMU/PSTDashboard/jobs/tasks/message_replay/SpringMessageReplayBeans.xml
+
+!message_replay_limit ==> REPLAY_VA_TO_DOD_UPDATES, REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, REPLAY_HDR_UPDATES = echo 2
+
+#set !hash_trim_days_back to -1 to trim all data, zero to not touch the file and > 0 to trim a certain number of days back
+!hash_trim_days_back ==> REPLAY_VA_TO_DOD_UPDATES, REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, REPLAY_HDR_UPDATES = echo 365
+
+# values in seconds for !replay_group_count and !replay_pause
+!replay_group_count ==> REPLAY_VA_TO_DOD_UPDATES, REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, REPLAY_HDR_UPDATES = echo 5000
+!replay_pause ==> REPLAY_VA_TO_DOD_UPDATES, REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, REPLAY_HDR_UPDATES = echo 0
+!replay_run ==> REPLAY_HDR_UPDATES, REPLAY_VA_TO_DOD_UPDATES, REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY = echo RUBY_EVAL_FILE_REPLAY_SERVICE
+!run_days_back ==> REPLAY_VA_TO_DOD_UPDATES, REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, REPLAY_HDR_UPDATES = echo 30
+!run_days_back ==> REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY = echo 90
+!max_service_bus_errors ==> REPLAY_VA_TO_DOD_UPDATES, REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, REPLAY_HDR_UPDATES = echo 1
+
+#values for !use_dates: 0 is false 1 is true
+!use_dates_arg ==> REPLAY_VA_TO_DOD_UPDATES, REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, REPLAY_HDR_UPDATES = echo 0
+#ARG_DEFINITION|Use Replay Run Dates Entered|Enter 1 as true and 0 as false|1|Please enter 1 to use the dates below or zero to calculate the dates based on the last scheduled run|^1|0$
+
+!run_start_date_arg ==> REPLAY_VA_TO_DOD_UPDATES, REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, REPLAY_HDR_UPDATES = RUBY_EVAL_CODE (Time.now - (!run_days_back*86400)).strftime("%Y%m%d")
+#ARG_DEFINITION|Replay Run Start Date|Enter in the start date to report on in yyyymmdd format|8|Please enter a valid date in the form yyyymmdd|^([2-9]\d{3}((0[1-9]|1[012])(0[1-9]|1\d|2[0-8])|(0[13456789]|1[012])(29|30)|(0[13578]|1[02])31)|(([2-9]\d)(0[48]|[2468][048]|[13579][26])|(([2468][048]|[3579][26])00))0229)$
+
+!run_end_date_arg ==> REPLAY_VA_TO_DOD_UPDATES, REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, REPLAY_HDR_UPDATES = RUBY_EVAL_CODE Time.now.strftime("%Y%m%d")
+#ARG_DEFINITION|Replay Run End Date|Enter in the end date to report on in yyyymmdd format|8|Please enter a valid date in the form yyyymmdd|^([2-9]\d{3}((0[1-9]|1[012])(0[1-9]|1\d|2[0-8])|(0[13456789]|1[012])(29|30)|(0[13578]|1[02])31)|(([2-9]\d)(0[48]|[2468][048]|[13579][26])|(([2468][048]|[3579][26])00))0229)$
+
+#pass DEV, SQA, or PROD based on the service bus environment being tested
+!service_bus_env ==> REPLAY_VA_TO_DOD_UPDATES, REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, REPLAY_HDR_UPDATES = echo SQA
+
+#log levels (debug, info, warn, error, fatal)
+!replay_log_level ==> REPLAY_VA_TO_DOD_UPDATES, REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, REPLAY_HDR_UPDATES = echo debug
+
+#top fault countdown
+!replay_top_faults ==> REPLAY_VA_TO_DOD_UPDATES, REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, REPLAY_HDR_UPDATES = echo 30
+
+#replay clinical updates (Z03 messages to and from DoD)
+!replay_message_file_name ==> REPLAY_VA_TO_DOD_UPDATES, REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY = echo ./jobs/tasks/message_replay/replay_clinical_updates.rb
+
+#uniquie tag for replayed message ids based on the job being run
+!msg_id_tag_replay_va_to_dod_updates ==> REPLAY_VA_TO_DOD_UPDATES = echo A
+
+REPLAY_VA_TO_DOD_UPDATES, echo EMAIL_RESULT_BELOW:
+REPLAY_VA_TO_DOD_UPDATES, echo SUBJECT: Replay VA to DoD
+REPLAY_VA_TO_DOD_UPDATES, cat !html_header
+REPLAY_VA_TO_DOD_UPDATES, !replay_run  ./jobs/tasks/message_replay/message_replay_task.rb REPLAY_VA_TO_DOD_UPDATES !replay_message_file_name !replay_log_level !replay_top_faults !script_rails_root !message_replay_beans_path !run_start_date_arg !run_end_date_arg !service_bus_env !hash_trim_days_back !replay_group_count !replay_pause !run_days_back !use_dates_arg !max_service_bus_errors !message_replay_limit !msg_id_tag_replay_va_to_dod_updates VA_TO_DOD 0
+REPLAY_VA_TO_DOD_UPDATES, cat !html_footer
+REPLAY_VA_TO_DOD_UPDATES, echo EMAIL_RESULT_ABOVE:
+
+#unique tag for replayed message ids based on the job being run
+!msg_id_tag_replay_dod_to_va_all_but_terminology ==> REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY = echo B
+
+#additional arguments
+!no_903s ==> REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY = echo 0
+!extra_args_replay_dod_to_va_all_but_terminology ==> REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY = echo DOD_TO_VA !no_903s
+REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, echo EMAIL_RESULT_BELOW:
+REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, echo SUBJECT: Replay All But Terminology - DoD to VA
+REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, cat !html_header
+REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, !replay_run  ./jobs/tasks/message_replay/message_replay_task.rb REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY !replay_message_file_name !replay_log_level !replay_top_faults !script_rails_root !message_replay_beans_path !run_start_date_arg !run_end_date_arg !service_bus_env !hash_trim_days_back !replay_group_count !replay_pause !run_days_back !use_dates_arg !max_service_bus_errors !message_replay_limit !msg_id_tag_replay_dod_to_va_all_but_terminology !extra_args_replay_dod_to_va_all_but_terminology
+REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, cat !html_footer
+REPLAY_DOD_TO_VA_ALL_BUT_TERMINOLOGY, echo EMAIL_RESULT_ABOVE:
+
+#uniquie tag for replayed message ids based on the job being run
+!msg_id_tag_replay_dod_to_va_terminology_only ==> REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY = echo C
+
+#additional arguments
+!only_903s ==> REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY = echo 1
+!terminology_spring ==> REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY = echo ./jobs/tasks/message_replay/caip_resources/terminology.xml
+!caip_component_spring ==> REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY = echo ./jobs/tasks/message_replay/caip_resources/caipComponent.xml
+!caip_jvm_props_file ==> REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY = echo ./jobs/tasks/message_replay/caip_resources/caip_system_props.properties
+!extra_args_replay_dod_to_va_terminology_only ==> REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY = echo DOD_TO_VA !only_903s !terminology_spring !caip_component_spring !caip_jvm_props_file
+REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, echo EMAIL_RESULT_BELOW:
+REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, echo SUBJECT: Replay Terminology Only - DoD to VA
+REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, cat !html_header
+REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, !replay_run  ./jobs/tasks/message_replay/message_replay_task.rb REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY !replay_message_file_name !replay_log_level !replay_top_faults !script_rails_root !message_replay_beans_path !run_start_date_arg !run_end_date_arg !service_bus_env !hash_trim_days_back !replay_group_count !replay_pause !run_days_back !use_dates_arg !max_service_bus_errors !message_replay_limit !msg_id_tag_replay_dod_to_va_terminology_only !extra_args_replay_dod_to_va_terminology_only
+REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, cat !html_footer
+REPLAY_DOD_TO_VA_TERMINOLOGY_ONLY, echo EMAIL_RESULT_ABOVE:
+
+################################################################################################################
+# todo - additional argument for whether or not we are processing 903 errors. This is for scheduling purposes
+# because based on the direction all 903 errors are terminology errors and they will need to be scheduled to run
+# differently than the general system failures
+################################################################################################################
+#REPLAY_DOD_TO_VA_TERMINOLOGY_UPDATES, !replay_run  ./jobs/tasks/message_replay/message_replay_task.rb REPLAY_DOD_TO_VA_UPDATES !replay_message_file_name !replay_log_level !replay_top_faults !message_replay_beans_path !run_start_date_arg !run_end_date_arg !service_bus_env !hash_trim_days_back !replay_group_count !replay_pause !run_days_back !use_dates_arg !max_service_bus_errors !message_replay_limit DOD_TO_VA 1
+
+#replay hdr exceptions (HDRALGY,HDEPRES,HDRFILL)
+#!replay_hdr_message_file_name ==> REPLAY_HDR_UPDATES = echo ./jobs/tasks/message_replay/replay_hdr_updates.rb
+#REPLAY_HDR_UPDATES, !replay_run_hdr  ./jobs/tasks/message_replay/message_replay_task.rb REPLAY_HDR_UPDATES !replay_hdr_message_file_name !replay_log_level !replay_top_faults !message_replay_beans_path !run_start_date_arg !run_end_date_arg !service_bus_env !hash_trim_days_back !replay_group_count !replay_pause !run_days_back !use_dates_arg !max_service_bus_errors
+
+
+####################################################################################################################
+# MESSAGE REPLAY - end
+####################################################################################################################
+
+####################################################################################################################
+# Terminology report - begin
+####################################################################################################################
+!script_terminology_invoker  ==> TERMINOLOGY_REPORT_DAILY,TERMINOLOGY_REPORT_WEEKLY,TERMINOLOGY_REPORT_MONTHLY,TERMINOLOGY_REPORT_SERVICE = echo RUBY_EVAL_FILE_SQL_INVOKER ./jobs/reports/terminology_failures/terminology_failure_rpt.rb
+!script_terminology_va_sites  ==> TERMINOLOGY_REPORT_DAILY,TERMINOLOGY_REPORT_WEEKLY,TERMINOLOGY_REPORT_MONTHLY = echo 556
+!script_terminology_dod_sites  ==> TERMINOLOGY_REPORT_DAILY,TERMINOLOGY_REPORT_WEEKLY,TERMINOLOGY_REPORT_MONTHLY  = echo 0056
+!script_terminology_top_failures  ==> TERMINOLOGY_REPORT_DAILY,TERMINOLOGY_REPORT_WEEKLY,TERMINOLOGY_REPORT_MONTHLY, TERMINOLOGY_REPORT_SERVICE  = echo 20
+!script_terminology_common_arguments  ==> TERMINOLOGY_REPORT_DAILY,TERMINOLOGY_REPORT_WEEKLY,TERMINOLOGY_REPORT_MONTHLY = echo !script_terminology_va_sites !script_terminology_dod_sites !script_terminology_top_failures
+!script_terminology_daily_arguments  ==> TERMINOLOGY_REPORT_DAILY = echo !script_terminology_common_arguments daily
+!script_terminology_weekly_arguments  ==> TERMINOLOGY_REPORT_WEEKLY = echo !script_terminology_common_arguments weekly
+!script_terminology_monthly_arguments  ==> TERMINOLOGY_REPORT_MONTHLY = echo !script_terminology_common_arguments monthly
+
+TERMINOLOGY_REPORT_DAILY, echo EMAIL_RESULT_BELOW:
+TERMINOLOGY_REPORT_DAILY, echo SUBJECT: Terminology Failure Report: Daily
+TERMINOLOGY_REPORT_DAILY, !script_terminology_invoker !script_terminology_daily_arguments
+TERMINOLOGY_REPORT_DAILY, echo EMAIL_RESULT_ABOVE:
+
+TERMINOLOGY_REPORT_WEEKLY, echo EMAIL_RESULT_BELOW:
+TERMINOLOGY_REPORT_WEEKLY, echo SUBJECT: Terminology Failure Report: Weekly
+TERMINOLOGY_REPORT_WEEKLY, !script_terminology_invoker !script_terminology_weekly_arguments
+TERMINOLOGY_REPORT_WEEKLY, echo EMAIL_RESULT_ABOVE:
+
+TERMINOLOGY_REPORT_MONTHLY, echo EMAIL_RESULT_BELOW:
+TERMINOLOGY_REPORT_MONTHLY, echo SUBJECT: Terminology Failure Report: Monthly
+TERMINOLOGY_REPORT_MONTHLY, !script_terminology_invoker !script_terminology_monthly_arguments
+TERMINOLOGY_REPORT_MONTHLY, echo EMAIL_RESULT_ABOVE:
+
+!terminology_site_va_arg ==> TERMINOLOGY_REPORT_SERVICE = echo 556
+#ARG_DEFINITION|VA Site Codes|Enter in a comma separated list of VA site codes (556 North Chicago, 756 El Paso, 508 Atlanta)|999|Please enter valid site codes comma separated with no spaces!|^(?:\d*,{0,1}\d+)+$
+
+!terminology_site_dod_arg ==> TERMINOLOGY_REPORT_SERVICE = echo 0056
+#ARG_DEFINITION|DoD Site Codes|Enter in a comma separated list of DoD site codes(0056 is Great Lakes)|999|Please enter valid site codes comma separated with no spaces!|^(?:\d*,{0,1}\d+)+$
+
+!terminology_start_arg ==> TERMINOLOGY_REPORT_SERVICE = echo !arg_yesterday
+#ARG_DEFINITION|Enter the start date|Enter in the start date to report on in yyyymmdd format|8|Please enter a valid date in the form yyyymmdd|^([2-9]\d{3}((0[1-9]|1[012])(0[1-9]|1\d|2[0-8])|(0[13456789]|1[012])(29|30)|(0[13578]|1[02])31)|(([2-9]\d)(0[48]|[2468][048]|[13579][26])|(([2468][048]|[3579][26])00))0229)$
+
+!terminology_end_arg ==> TERMINOLOGY_REPORT_SERVICE = echo !arg_today
+#ARG_DEFINITION|Enter the end date|Enter in the end date to report on in yyyymmdd format|8|Please enter a valid date in the form yyyymmdd|^([2-9]\d{3}((0[1-9]|1[012])(0[1-9]|1\d|2[0-8])|(0[13456789]|1[012])(29|30)|(0[13578]|1[02])31)|(([2-9]\d)(0[48]|[2468][048]|[13579][26])|(([2468][048]|[3579][26])00))0229)$
+
+!script_terminology_service_arguments  ==> TERMINOLOGY_REPORT_SERVICE = echo !terminology_site_va_arg !terminology_site_dod_arg !script_terminology_top_failures range !terminology_start_arg !terminology_end_arg
+
+TERMINOLOGY_REPORT_SERVICE, echo EMAIL_RESULT_BELOW:
+TERMINOLOGY_REPORT_SERVICE, echo SUBJECT: Terminology Failure Report
+TERMINOLOGY_REPORT_SERVICE,!script_terminology_invoker !script_terminology_service_arguments
+TERMINOLOGY_REPORT_SERVICE, echo EMAIL_RESULT_ABOVE:
+
+####################################################################################################################
+# Terminology report - end
+####################################################################################################################
+#!time ==>  TEST_RED1_GREEN, TEST_RED1_GREEN2 =echo %time%
+#!file2 ==> JRUBY = echo c:\temp\hi_cris_hi_greg9.txt
+#JRUBY, touch !file1
+#JRUBY  , touch !file2
+#JRUBY   , touch c:\temp\hi_cris_hi_greg108.txt
+#JRUBY, echo the time is
+#JRUBY, c:\Java\jdk1.6.0_30\bin\java -jar ./lib/jars/jruby-complete-1.6.7.2.jar ./test/time.rb
+#JRUBY, c:\Java\jdk1.6.0_30\bin\java -jar ./lib/jars/jruby-complete-1.6.7.2.jar 'sleep 30'
+#JRUBY, c:\Java\jdk1.6.0_30\bin\java -jar ./lib/jars/jruby-complete-1.6.7.2.jar ./test/time.rb
+#CRIS, echo this is a test
+
+TEST_RED_GREEN, echo Hi I am a RED/GREEN JOB
+#TEST_RED_GREEN, echo __RED_LIGHT__
+TEST_RED_GREEN, echo  __GREEN_LIGHT__
+TEST_RED_GREEN, echo EMAIL_RESULT_BELOW:
+TEST_RED_GREEN, echo SUBJECT: RED GREEN
+TEST_RED_GREEN, echo RED LIGHT!!!
+#TEST_RED_GREEN, echo GREEN_LIGHT!!!
+TEST_RED_GREEN, echo EMAIL_RESULT_ABOVE:
+
+#TEST_RED_GREEN2, echo Hi I am a RED/GREEN JOB
+#TEST_RED_GREEN2, echo __RED_LIGHT__
+#TEST_RED_GREEN2, echo  __GREEN_LIGHT__
+#TEST_RED_GREEN2, echo EMAIL_RESULT_BELOW:
+#TEST_RED_GREEN2, echo SUBJECT: RED GREEN
+#TEST_RED_GREEN2, echo RED LIGHT!!!
+#TEST_RED_GREEN2, echo GREEN_LIGHT!!!
+#TEST_RED_GREEN2, echo Another line
+#TEST_RED_GREEN2, echo EMAIL_RESULT_ABOVE:
